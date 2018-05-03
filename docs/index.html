@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Cashmere</title>
+		<link rel="stylesheet" type="text/css" href="css/main.css" >
+	</head>
+	<body>
+		<nav>
+    		<ul>
+        		<li><a href="https://github.com/JungleComputing/cashmere/releases/tag/v0.2.0">Release</a></li>
+        		<li><a href="https://bintray.com/cerieljacobs/JungleComputing-Cashmere/cashmere/0.2.0/view">Bintray</a></li>
+        		<li><a href="https://github.com/JungleComputing/cashmere/tree/v0.2.0">Source code</a></li>
+	        	<li><a href="versions/0.2.0/javadoc/index.html">Javadoc</a></li>
+    		</ul>
+		</nav>
+		<div class="container">
+    		<div class="blurb">
+		    <h1>Cashmere</h1>
+		    <h2>What is it?</h2>
+		    <p>
+Cashmere is a programming system for heterogeneous compute clusters with
+many-core devices such as GPUs, something we call a compute jungle.
+Heterogeneity refers to the fact that the compute cluster can contain many
+different kinds of many-core devices with different processing speeds.
+Cashmere makes it possible to achieve good scalability and performance on these
+heterogeneous compute clusters.
+		    </p>
+		    <h2>How does it work?</h2>
+		    <p>
+Cashmere acts as a library on top of <a href="https://github.com/NLeSC/Constellation">Constellation</a>,
+a framework that schedules loosely coupled activities by means of work stealing.
+Cashmere operates on the level of one node and is responsible for scheduling many-core kernels
+efficiently onto may-core devices within the node.  In addition, it provides a
+convenient interface for calling kernels.  In Cashmere, the kernels for the
+many-core devices are written in <a href="https://github.com/JungleComputing/mcl">Many-Core Levels</a> (MCL),
+a programming system that allows one to write kernels for many-cores on multiple levels of
+abstraction.  This allows programmers to trade off (control over) performance
+and portability and maintainability of the code.
+		    </p>
+		    <p>
+Cashmere is an open source project of the Computer Systems group of the
+Computer Science department of the Faculty of Sciences at the Vrije
+Universiteit Amsterdam, The Netherlands.  Cashmere and Constellation are built
+on the Ibis Portability Layer (IPL).  Ibis has its own web-site:
+http://www.cs.vu.nl/ibis/ where you can find more Ibis documentation, papers,
+application sources.
+		    </p>
+		    <h2>History</h2>
+		    <p>
+		    In version 0.1.0, Cashmere was based on <a href="https://github.com/JungleComputing/satin">Satin</a> that extends Java with Cilk like
+primitives that make it very convenient for the programmer to write divide and
+conquer style programs.  In its current version 0.2.0, Cashmere acts as a
+library on top of <a href="https://github.com/NLeSC/Constellation">Constellation</a>.
+		    </p>
+    		</div><!-- /.blurb -->
+		</div><!-- /.container -->
+		<footer>
+    		<ul>
+		    <li><a href="https://github.com/JungleComputing/Cashmere">github.com/JungleComputing/cashmere</a></li>
+		</ul>
+		</footer>
+	</body>
+</html>

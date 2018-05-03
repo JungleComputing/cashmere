@@ -87,3 +87,11 @@ bintray {
 	licenses = ['Apache-2.0']
     }
 }
+
+task copyJavadoc(type: Copy) {
+    description 'Copy Java documentation to site'
+    group 'Publishing'
+    from "build/docs"
+    into "docs/versions/${version}"
+    dependsOn 'javadoc'
+}
