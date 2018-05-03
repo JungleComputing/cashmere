@@ -35,10 +35,12 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 }
 
 javadoc.failOnError = false
+javadoc.options.memberLevel = JavadocMemberLevel.PUBLIC
+javadoc.options.links "https://JungleComputing.github.io/Constellation"
 
-javadoc {
-  options.memberLevel = JavadocMemberLevel.PUBLIC
-}
+// javadoc {
+//   options.memberLevel = JavadocMemberLevel.PUBLIC
+// }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'

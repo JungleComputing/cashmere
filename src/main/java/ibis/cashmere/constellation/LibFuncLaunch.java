@@ -25,7 +25,7 @@ import org.jocl.cl_event;
 import ibis.util.ThreadPool;
 
 /**
- * Represents one specific launch of a <code>LibFunc</code>. While {@link #launch} methods can only be called once, it is possible
+ * Represents one specific launch of a {@link LibFunc}. While {@link #launch} methods can only be called once, it is possible
  * to create multiple launches from a {@link LibFunc}.
  */
 public class LibFuncLaunch extends Launch {
@@ -36,7 +36,7 @@ public class LibFuncLaunch extends Launch {
     }
 
     /**
-     * Launch the library function with the supplied <code>LaunchFunction</code>. The launch will be synchronous.
+     * Launch the library function with the supplied {@link LaunchFunction}. The launch will be synchronous.
      *
      * @param launchFunction
      *            represents the functionality to launch the library function.
@@ -46,7 +46,7 @@ public class LibFuncLaunch extends Launch {
     }
 
     /**
-     * Launch the library function with the supplied <code>LaunchFunction</code>.
+     * Launch the library function with the supplied {@link LaunchFunction}.
      *
      * @param synchronous
      *            indicates whether the launch will be synchronous or asynchronous.

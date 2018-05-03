@@ -65,7 +65,7 @@ import ibis.util.TypedProperties;
  * The <code>Cashmere</code> class is the main entry point for the library. Cashmere's responsibility is to schedule MCL kernels
  * within one node. A typical setup for a Cashmere program is {@link #initialize initialize} Cashmere and request whether this
  * instance {@link #isMaster}. Non-master instances of Cashmere typically execute {@link #done done} immediately, while the master
- * will launch <code>Activity</code> instances of <code>Constellation</code> with {@link #submit(Activity)}. These activities
+ * will launch {@link Activity} instances of {@link Constellation} with {@link #submit(Activity)}. These activities
  * should be set up such that they can be stolen by other nodes in the cluster.
  * <p>
  * Activities may want to launch MCL kernels to the many-core device if there is one available. The MCL compiler will generate an
@@ -122,7 +122,7 @@ public class Cashmere {
      * @param config
      *            the configuration for Constellation
      * @exception ConstellationCreationException
-     *                if a <code>Constellation</code> instance could not be created.
+     *                if a {@link Constellation} instance could not be created.
      * @see #initialize(ConstellationConfiguration[], Properties, Map, int, int) initialize
      */
     public static void initialize(ConstellationConfiguration[] config) throws ConstellationCreationException {
@@ -138,7 +138,7 @@ public class Cashmere {
      * @param props
      *            the <code>Properties</code> for Cashmere
      * @exception ConstellationCreationException
-     *                if a <code>Constellation</code> instance could not be created.
+     *                if a {@link Constellation} instance could not be created.
      * @see #initialize(ConstellationConfiguration[], Properties, Map, int, int) initialize
      */
     public static void initialize(ConstellationConfiguration[] config, Properties props) throws ConstellationCreationException {
@@ -157,7 +157,7 @@ public class Cashmere {
      * @param kernelDefines
      *            the define statements for the MCL kernels
      * @exception ConstellationCreationException
-     *                if a <code>Constellation</code> instance could not be created.
+     *                if a {@link Constellation} instance could not be created.
      * @see #initialize(ConstellationConfiguration[], Properties, Map, int, int) initialize
      */
     public static void initialize(ConstellationConfiguration[] config, Properties props,
@@ -176,11 +176,11 @@ public class Cashmere {
      * @param kernelDefines
      *            the define statements for the MCL kernels
      * @param nrBuffers
-     *            the number of <code>Buffer</code> instances to allocate
+     *            the number of {@link Buffer} instances to allocate
      * @param sizeBuffer
-     *            the size of the <code>Buffer</code> instances
+     *            the size of the {@link Buffer} instances
      * @exception ConstellationCreationException
-     *                if a <code>Constellation</code> instance could not be created.
+     *                if a {@link Constellation} instance could not be created.
      */
     public static void initialize(ConstellationConfiguration[] config, Properties props, Map<String, List<String>> kernelDefines,
             int nrBuffers, int sizeBuffer) throws ConstellationCreationException {
@@ -226,20 +226,20 @@ public class Cashmere {
     }
 
     /**
-     * Requests whether this node is the <code>Constellation</code> master.
+     * Requests whether this node is the {@link Constellation} master.
      *
-     * @return true if this node is the <code>Constellation</code> master.
+     * @return true if this node is the {@link Constellation} master.
      */
     public static boolean isMaster() {
         return cashmere.constellation.isMaster();
     }
 
     /**
-     * Submit an <code>Activity</code>.
+     * Submit an {@link Activity}.
      *
      * @param a
      *            the <code>Activity</code> to submit.
-     * @return an <code>ActivityIdentifier</code> that identifies the <code>Activity</code>
+     * @return an {@link ActivityIdentifier} that identifies the {@link Activity}
      * @exception NoSuitableExecutorException
      *                if an error occurs
      */
@@ -339,14 +339,14 @@ public class Cashmere {
     /**
      * Get the overall timer for the application.
      *
-     * @return the overall <code>Timer</code>
+     * @return the overall {@link Timer}
      */
     public static synchronized Timer getOverallTimer() {
         return cashmere.constellation.getOverallTimer();
     }
 
     /**
-     * Get a timer <code>Timer</code>.
+     * Get a timer {@link Timer}.
      *
      * @param device
      *            the device name
@@ -354,16 +354,16 @@ public class Cashmere {
      *            the thread name
      * @param action
      *            the name of the action
-     * @return the <code>Timer</code> for this device, thread and action.
+     * @return the {@link Timer} for this device, thread and action.
      */
     public static synchronized Timer getTimer(String device, String thread, String action) {
         return cashmere.retrieveTimer(device, thread, action);
     }
 
     /**
-     * Get the <code>Constellation</code> instance.
+     * Get the {@link Constellation} instance.
      *
-     * @return the <code>Constellation</code> instance.
+     * @return the {@link Constellation} instance.
      */
     public static Constellation getConstellation() {
         return cashmere.constellation;

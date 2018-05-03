@@ -24,7 +24,7 @@ import ibis.constellation.util.ByteBufferCache;
 public class BufferCache {
 
     /**
-     * Make the specified <code>Buffer</code> available for use, that is, append it to the list of available buffers.
+     * Make the specified {@link Buffer} available for use, that is, append it to the list of available buffers.
      *
      * @param b
      *            a <code>Buffer</code> value
@@ -34,7 +34,7 @@ public class BufferCache {
     }
 
     /**
-     * Obtains a <code>Buffer</code> of the specified size. If one cannot be found in the cache, a new one is allocated. If it
+     * Obtains a {@link Buffer} of the specified size. If one cannot be found in the cache, a new one is allocated. If it
      * needs to be clear(ed), the needsClearing flag should be set to true.
      *
      * @param sizeBuffer

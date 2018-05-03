@@ -28,7 +28,7 @@ public class LibFunc extends ManyCoreUnit {
     }
 
     /**
-     * Create a <code>LibFuncLaunch</code> for this <code>LibFunc</code>.
+     * Create a {@link LibFuncLaunch} for this <code>LibFunc</code>.
      *
      * @return a <code>LibFuncLaunch</code> value
      */
@@ -38,7 +38,7 @@ public class LibFunc extends ManyCoreUnit {
     }
 
     /**
-     * Create a <code>LibFuncLaunch</code> for this <code>LibFunc</code>.
+     * Create a {@link LibFuncLaunch} for this <code>LibFunc</code>.
      *
      * @param threadName
      *            the name for this thread
