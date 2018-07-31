@@ -1,0 +1,21 @@
+{
+    "description": "A programming system for heterogeneous compute clusters with many-core devices such as GPUs",
+    "license": "Apache-2.0",
+    "title": "Cashmere",
+    "upload_type": "software",
+    "creators": [{
+            "affiliation": "Vrije Universiteit Amsterdam",
+            "name": "Hijma, Pieter"
+        },
+        {
+            "affiliation": "Vrije Universiteit Amsterdam",
+            "name": "Jacobs, Ceriel"
+        }
+    ],
+    "access_right": "open",
+    "keywords": [
+        "Java",
+        "GPU",
+        "distributed computing"
+    ]
+}
