@@ -473,7 +473,6 @@ public class Cashmere {
         initializeOpenCL();
         initializeBuffers(nrBuffers, sizeBuffer);
         initializeKernels(defines);
-        constellation.activate();
     }
 
     // ensuring a unique name of local executors
