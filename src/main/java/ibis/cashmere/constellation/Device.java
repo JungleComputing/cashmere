@@ -98,28 +98,35 @@ public class Device implements Comparable<Device> {
     private static final Set<String> ACCELERATORS;
     static {
         OPENCL_TO_MCL_DEVICE_INFO = new HashMap<String, DeviceInfo>();
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 480", new DeviceInfo("fermi", 20, "gtx480", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 680", new DeviceInfo("fermi", 40, "gtx680", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 980", new DeviceInfo("fermi", 50, "gtx980", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN", new DeviceInfo("fermi", 60, "titan", 256 * 5 * MB));
+	// DAS-4
+        // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 480", new DeviceInfo("fermi", 20, "gtx480", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 680", new DeviceInfo("fermi", 40, "gtx680", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 980", new DeviceInfo("fermi", 50, "gtx980", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN", new DeviceInfo("fermi", 60, "titan", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("Tahiti", new DeviceInfo("hd7970", 60, "hd7970", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("Tesla C2050", new DeviceInfo("fermi", 10, "c2050", 256 * 5 * MB));
+
+	// GPUs
         OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN X", new DeviceInfo("fermi", 60, "titanx", 11 * GB));
         OPENCL_TO_MCL_DEVICE_INFO.put("TITAN X (Pascal)", new DeviceInfo("fermi", 60, "titanx-pascal", 11 * GB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K20m", new DeviceInfo("fermi", 40, "k20", 4 * GB));
+        //OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K20m", new DeviceInfo("fermi", 40, "k20", 4 * GB));
         OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K40c", new DeviceInfo("fermi", 60, "k40", 11 * GB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Tesla C2050", new DeviceInfo("fermi", 10, "c2050", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           E5620  @ 2.40GHz",
-                new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 0 @ 2.30GHz",
-                new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           X5650  @ 2.67GHz",
-                new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Tahiti", new DeviceInfo("hd7970", 60, "hd7970", 256 * 5 * MB));
 
-        // node078, node079
-        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2620 0 @ 2.00GHz",
+	// CPUs
+        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz",
                 new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Many Integrated Core Acceleration Card",
-                new DeviceInfo("xeon_phi", 10, "xeon_phi", 7 * GB));
+
+	// old ones
+        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           E5620  @ 2.40GHz",
+        //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 0 @ 2.30GHz",
+        //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
+        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           X5650  @ 2.67GHz",
+        //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
+
+	
+        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Many Integrated Core Acceleration Card",
+        //         new DeviceInfo("xeon_phi", 10, "xeon_phi", 7 * GB));
 
         ACCELERATORS = new HashSet<String>();
         ACCELERATORS.add("cpu");
@@ -753,7 +760,7 @@ public class Device implements Comparable<Device> {
         clCreateKernelsInProgram(program, 1, kernelArray, null);
         cl_kernel kernel = kernelArray[0];
 
-        String nameKernel = getName(kernel);
+        String nameKernel = OpenCLInfo.getName(kernel);
         this.kernels.put(nameKernel, program);
 
         // writeBinary(program, nameKernel, info.name);
@@ -967,12 +974,7 @@ public class Device implements Comparable<Device> {
      */
 
     private DeviceInfo getDeviceInfo(cl_device_id device) {
-        long size[] = new long[1];
-        clGetDeviceInfo(device, CL_DEVICE_NAME, 0, null, size);
-        byte buffer[] = new byte[(int) size[0]];
-        clGetDeviceInfo(device, CL_DEVICE_NAME, buffer.length, Pointer.to(buffer), null);
-        String openCLDeviceName = new String(buffer, 0, buffer.length - 1).trim();
-
+	String openCLDeviceName = OpenCLInfo.getName(device);
         if (OPENCL_TO_MCL_DEVICE_INFO.containsKey(openCLDeviceName)) {
             DeviceInfo deviceInfo = OPENCL_TO_MCL_DEVICE_INFO.get(openCLDeviceName);
             logger.info("Found MCL device: " + deviceInfo.name + " (" + openCLDeviceName + ")");
@@ -984,13 +986,6 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    private String getName(cl_kernel kernel) {
-        long size[] = new long[1];
-        clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, null, size);
-        byte buffer[] = new byte[(int) size[0]];
-        clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, buffer.length, Pointer.to(buffer), null);
-        return new String(buffer, 0, buffer.length - 1);
-    }
 
     private void measureTimeOffset() {
         float f[] = { 0.0f };
