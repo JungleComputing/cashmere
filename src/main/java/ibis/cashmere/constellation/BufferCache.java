@@ -34,8 +34,8 @@ public class BufferCache {
     }
 
     /**
-     * Obtains a {@link Buffer} of the specified size. If one cannot be found in the cache, a new one is allocated. If it
-     * needs to be clear(ed), the needsClearing flag should be set to true.
+     * Obtains a {@link Buffer} of the specified size. If one cannot be found in the cache, a new one is allocated. If it needs to
+     * be clear(ed), the needsClearing flag should be set to true.
      *
      * @param sizeBuffer
      *            the size of the <code>Buffer</code> to be obtained

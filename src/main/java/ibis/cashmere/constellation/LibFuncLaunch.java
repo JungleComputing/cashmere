@@ -25,8 +25,8 @@ import org.jocl.cl_event;
 import ibis.util.ThreadPool;
 
 /**
- * Represents one specific launch of a {@link LibFunc}. While {@link #launch} methods can only be called once, it is possible
- * to create multiple launches from a {@link LibFunc}.
+ * Represents one specific launch of a {@link LibFunc}. While {@link #launch} methods can only be called once, it is possible to
+ * create multiple launches from a {@link LibFunc}.
  */
 public class LibFuncLaunch extends Launch {
 

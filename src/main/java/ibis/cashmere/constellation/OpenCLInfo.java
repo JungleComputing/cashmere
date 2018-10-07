@@ -16,63 +16,57 @@
 
 package ibis.cashmere.constellation;
 
-import static org.jocl.CL.CL_PLATFORM_NAME;
-import static org.jocl.CL.CL_PLATFORM_VENDOR;
-import static org.jocl.CL.CL_PLATFORM_VERSION;
-import static org.jocl.CL.CL_PLATFORM_PROFILE;
-import static org.jocl.CL.CL_PLATFORM_EXTENSIONS;
 import static org.jocl.CL.CL_DEVICE_NAME;
 import static org.jocl.CL.CL_KERNEL_FUNCTION_NAME;
-import static org.jocl.CL.clGetDeviceInfo;
-import static org.jocl.CL.clGetKernelInfo;
-import static org.jocl.CL.clGetPlatformInfo;
+import static org.jocl.CL.CL_PLATFORM_EXTENSIONS;
+import static org.jocl.CL.CL_PLATFORM_NAME;
+import static org.jocl.CL.CL_PLATFORM_PROFILE;
+import static org.jocl.CL.CL_PLATFORM_VENDOR;
+import static org.jocl.CL.CL_PLATFORM_VERSION;
 
 import org.jocl.CL;
-import org.jocl.cl_platform_id;
+import org.jocl.Pointer;
 import org.jocl.cl_device_id;
 import org.jocl.cl_kernel;
-import org.jocl.Pointer;
+import org.jocl.cl_platform_id;
 
 class OpenCLInfo {
 
     static String getNameExtended(cl_platform_id platform) {
-	return String.format("Vendor: %s, Platform: %s, Version: %s, Profile: %s, Extensions: %s", 
-		getPlatformString(platform, CL_PLATFORM_VENDOR),
-		getPlatformString(platform, CL_PLATFORM_NAME),
-		getPlatformString(platform, CL_PLATFORM_VERSION),
-		getPlatformString(platform, CL_PLATFORM_PROFILE),
-		getPlatformString(platform, CL_PLATFORM_EXTENSIONS));
-		
+        return String.format("Vendor: %s, Platform: %s, Version: %s, Profile: %s, Extensions: %s",
+                getPlatformString(platform, CL_PLATFORM_VENDOR), getPlatformString(platform, CL_PLATFORM_NAME),
+                getPlatformString(platform, CL_PLATFORM_VERSION), getPlatformString(platform, CL_PLATFORM_PROFILE),
+                getPlatformString(platform, CL_PLATFORM_EXTENSIONS));
+
     }
 
     static String getName(cl_platform_id platform) {
-	return String.format("Vendor: %s, Platform: %s", 
-		getPlatformString(platform, CL_PLATFORM_VENDOR),
-		getPlatformString(platform, CL_PLATFORM_NAME));
+        return String.format("Vendor: %s, Platform: %s", getPlatformString(platform, CL_PLATFORM_VENDOR),
+                getPlatformString(platform, CL_PLATFORM_NAME));
     }
-    
+
     @FunctionalInterface
     interface GetInfoFunction<T> {
-	int getInfo(T t, int paramName, long paramSize, Pointer paramValue, long[] paramValueSizeRet);
+        int getInfo(T t, int paramName, long paramSize, Pointer paramValue, long[] paramValueSizeRet);
     }
 
     static <T> String getInfo(T t, int paramName, GetInfoFunction<T> func) {
-	long size[] = new long[1];
-	func.getInfo(t, paramName, 0, null, size);
-	byte buffer[] = new byte[(int) size[0]];
-	func.getInfo(t, paramName, buffer.length, Pointer.to(buffer), null);
-	return new String(buffer, 0, buffer.length - 1).trim();
+        long size[] = new long[1];
+        func.getInfo(t, paramName, 0, null, size);
+        byte buffer[] = new byte[(int) size[0]];
+        func.getInfo(t, paramName, buffer.length, Pointer.to(buffer), null);
+        return new String(buffer, 0, buffer.length - 1).trim();
     }
 
     static String getPlatformString(cl_platform_id platform, int paramName) {
-	return getInfo(platform, paramName, CL::clGetPlatformInfo);
+        return getInfo(platform, paramName, CL::clGetPlatformInfo);
     }
 
     static String getName(cl_device_id device) {
-	return getInfo(device, CL_DEVICE_NAME, CL::clGetDeviceInfo);
+        return getInfo(device, CL_DEVICE_NAME, CL::clGetDeviceInfo);
     }
 
     static String getName(cl_kernel kernel) {
-	return getInfo(kernel, CL_KERNEL_FUNCTION_NAME, CL::clGetKernelInfo);
+        return getInfo(kernel, CL_KERNEL_FUNCTION_NAME, CL::clGetKernelInfo);
     }
 }

@@ -20,8 +20,6 @@ import static ibis.constellation.util.MemorySizes.GB;
 import static ibis.constellation.util.MemorySizes.MB;
 import static ibis.constellation.util.MemorySizes.toStringBytes;
 import static org.jocl.CL.CL_CONTEXT_PLATFORM;
-import static org.jocl.CL.CL_DEVICE_NAME;
-import static org.jocl.CL.CL_KERNEL_FUNCTION_NAME;
 import static org.jocl.CL.CL_MEM_READ_WRITE;
 import static org.jocl.CL.CL_PROFILING_COMMAND_QUEUED;
 import static org.jocl.CL.CL_PROGRAM_BUILD_LOG;
@@ -35,8 +33,6 @@ import static org.jocl.CL.clCreateContext;
 import static org.jocl.CL.clCreateKernelsInProgram;
 import static org.jocl.CL.clCreateProgramWithSource;
 import static org.jocl.CL.clEnqueueWriteBuffer;
-import static org.jocl.CL.clGetDeviceInfo;
-import static org.jocl.CL.clGetKernelInfo;
 import static org.jocl.CL.clGetProgramBuildInfo;
 import static org.jocl.CL.clReleaseMemObject;
 
@@ -98,7 +94,7 @@ public class Device implements Comparable<Device> {
     private static final Set<String> ACCELERATORS;
     static {
         OPENCL_TO_MCL_DEVICE_INFO = new HashMap<String, DeviceInfo>();
-	// DAS-4
+        // DAS-4
         // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 480", new DeviceInfo("fermi", 20, "gtx480", 256 * 5 * MB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 680", new DeviceInfo("fermi", 40, "gtx680", 256 * 5 * MB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 980", new DeviceInfo("fermi", 50, "gtx980", 256 * 5 * MB));
@@ -106,17 +102,17 @@ public class Device implements Comparable<Device> {
         // OPENCL_TO_MCL_DEVICE_INFO.put("Tahiti", new DeviceInfo("hd7970", 60, "hd7970", 256 * 5 * MB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("Tesla C2050", new DeviceInfo("fermi", 10, "c2050", 256 * 5 * MB));
 
-	// GPUs
+        // GPUs
         OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN X", new DeviceInfo("fermi", 60, "titanx", 11 * GB));
         OPENCL_TO_MCL_DEVICE_INFO.put("TITAN X (Pascal)", new DeviceInfo("fermi", 60, "titanx-pascal", 11 * GB));
         //OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K20m", new DeviceInfo("fermi", 40, "k20", 4 * GB));
         OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K40c", new DeviceInfo("fermi", 60, "k40", 11 * GB));
 
-	// CPUs
+        // CPUs
         OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz",
                 new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
 
-	// old ones
+        // old ones
         // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           E5620  @ 2.40GHz",
         //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 0 @ 2.30GHz",
@@ -124,7 +120,6 @@ public class Device implements Comparable<Device> {
         // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           X5650  @ 2.67GHz",
         //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
 
-	
         // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Many Integrated Core Acceleration Card",
         //         new DeviceInfo("xeon_phi", 10, "xeon_phi", 7 * GB));
 
@@ -974,7 +969,7 @@ public class Device implements Comparable<Device> {
      */
 
     private DeviceInfo getDeviceInfo(cl_device_id device) {
-	String openCLDeviceName = OpenCLInfo.getName(device);
+        String openCLDeviceName = OpenCLInfo.getName(device);
         if (OPENCL_TO_MCL_DEVICE_INFO.containsKey(openCLDeviceName)) {
             DeviceInfo deviceInfo = OPENCL_TO_MCL_DEVICE_INFO.get(openCLDeviceName);
             logger.info("Found MCL device: " + deviceInfo.name + " (" + openCLDeviceName + ")");
@@ -985,7 +980,6 @@ public class Device implements Comparable<Device> {
             return new DeviceInfo("unknown", 1, "Unknown", 1 * GB);
         }
     }
-
 
     private void measureTimeOffset() {
         float f[] = { 0.0f };

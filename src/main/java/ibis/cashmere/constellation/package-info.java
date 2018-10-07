@@ -15,23 +15,16 @@
  */
 
 /**
- * Cashmere is a library on top of
- * <a href="https://github.com/NLeSC/Constellation">Constellation</a> that
- * schedules <a href="https://github.com/JungleComputing/mcl">Many-Core Levels
- * (MCL)</a> kernels efficiently.
+ * Cashmere is a library on top of <a href="https://github.com/NLeSC/Constellation">Constellation</a> that schedules
+ * <a href="https://github.com/JungleComputing/mcl">Many-Core Levels (MCL)</a> kernels efficiently.
  *
- * While Constellation is responsible for scheduling
- * {@link ibis.constellation.Activity Activities} onto nodes in the cluster,
- * Cashmere operates on the level of one node. It is responsible for scheduling
- * many-core kernels efficiently to many-core devices in the node, such as GPUs.
- * The main class for a Cashmere program is
- * {@link ibis.cashmere.constellation.Cashmere} that only has static methods.
- * For a typical setup of Cashmere we refer to the
- * {@link ibis.cashmere.constellation.Cashmere} class.
+ * While Constellation is responsible for scheduling {@link ibis.constellation.Activity Activities} onto nodes in the cluster,
+ * Cashmere operates on the level of one node. It is responsible for scheduling many-core kernels efficiently to many-core devices
+ * in the node, such as GPUs. The main class for a Cashmere program is {@link ibis.cashmere.constellation.Cashmere} that only has
+ * static methods. For a typical setup of Cashmere we refer to the {@link ibis.cashmere.constellation.Cashmere} class.
  *
  * @see ibis.cashmere.constellation.Cashmere
  * @see <a href="https://github.com/NLeSC/Constellation">Constellation</a>
- * @see <a href="https://github.com/JungleComputing/mcl">Many-Core Levels
- *      (MCL)</a>
+ * @see <a href="https://github.com/JungleComputing/mcl">Many-Core Levels (MCL)</a>
  */
 package ibis.cashmere.constellation;
