@@ -65,8 +65,8 @@ import ibis.util.TypedProperties;
  * The <code>Cashmere</code> class is the main entry point for the library. Cashmere's responsibility is to schedule MCL kernels
  * within one node. A typical setup for a Cashmere program is {@link #initialize initialize} Cashmere and request whether this
  * instance {@link #isMaster}. Non-master instances of Cashmere typically execute {@link #done done} immediately, while the master
- * will launch {@link Activity} instances of {@link Constellation} with {@link #submit(Activity)}. These activities
- * should be set up such that they can be stolen by other nodes in the cluster.
+ * will launch {@link Activity} instances of {@link Constellation} with {@link #submit(Activity)}. These activities should be set
+ * up such that they can be stolen by other nodes in the cluster.
  * <p>
  * Activities may want to launch MCL kernels to the many-core device if there is one available. The MCL compiler will generate an
  * <code>MCL.java</code> file from that will have to be included in the source directory of the Cashmere application. The Cashmere
@@ -334,6 +334,17 @@ public class Cashmere {
      */
     public static synchronized Device getDevice(String nameKernel) throws CashmereNotAvailable {
         return cashmere.pickDevice(nameKernel);
+    }
+
+    /**
+     * Returns a list of all <code>Device</code>s for a specific kernel.
+     *
+     * @param nameKernel
+     *            the name of the kernel
+     * @return the list of <code>Device</code>s that can execute this kernel.
+     */
+    public static List<Device> getDevices(String nameKernel) {
+        return cashmere.getDevicesForKernel(nameKernel);
     }
 
     /**
@@ -711,6 +722,17 @@ public class Cashmere {
         LibFunc libFunc = new LibFunc(name,
                 executor != null ? executor.identifier().toString() : Thread.currentThread().getName(), device);
         return libFunc;
+    }
+
+    private List<Device> getDevicesForKernel(String name) {
+        Collection<Device> deviceCollection = devices.values();
+        ArrayList<Device> al = new ArrayList<Device>();
+        for (Device device : deviceCollection) {
+            if (device.registeredKernel(name)) {
+                al.add(device);
+            }
+        }
+        return al;
     }
 
     private synchronized Device pickDevice(String name) throws CashmereNotAvailable {
