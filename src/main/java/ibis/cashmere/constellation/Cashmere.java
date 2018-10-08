@@ -100,7 +100,7 @@ public class Cashmere {
     private final boolean asynchReads;
 
     // Maps an MCL device name to a Device
-    private final Map<String, Device> devices = new HashMap<String, Device>();
+    private final Map<String, ArrayList<Device>> devices = new HashMap<String, ArrayList<Device>>();
 
     // A list of Kernels and Libfuncs
     private final List<ManyCoreUnit> manyCoreUnits = Collections.synchronizedList(new ArrayList<ManyCoreUnit>());
@@ -443,16 +443,17 @@ public class Cashmere {
             double expectedTermination;
             double expectedTerminationDevice;
             synchronized (this.device) {
-                expectedTermination = (this.device.nrKernelLaunches + 1) * kernelSpeeds.get(this);
+                expectedTermination = (this.device.nrKernelLaunches + this.device.launched) * kernelSpeeds.get(this);
                 if (logger.isInfoEnabled()) {
-                    logger.info(
-                            "" + this + ": launches = " + this.device.nrKernelLaunches + ", speed = " + kernelSpeeds.get(this));
+                    logger.info("" + this + ": launches = " + (this.device.nrKernelLaunches + this.device.launched) + ", speed = "
+                            + kernelSpeeds.get(this));
                 }
             }
             synchronized (kd.device) {
-                expectedTerminationDevice = (kd.device.nrKernelLaunches + 1) * kernelSpeeds.get(kd);
+                expectedTerminationDevice = (kd.device.nrKernelLaunches + kd.device.launched + 1) * kernelSpeeds.get(kd);
                 if (logger.isInfoEnabled()) {
-                    logger.info("" + kd + ": launches = " + kd.device.nrKernelLaunches + ", speed = " + kernelSpeeds.get(kd));
+                    logger.info("" + kd + ": launches = " + (kd.device.nrKernelLaunches + kd.device.launched) + ", speed = "
+                            + kernelSpeeds.get(kd));
                 }
             }
             if (logger.isInfoEnabled()) {
@@ -573,8 +574,14 @@ public class Cashmere {
 
     private void getDevices(cl_platform_id[] platforms) {
         for (cl_platform_id platform : platforms) {
-            for (Device device : getDevicesPlatform(platform)) {
-                devices.put(device.getName(), device);
+            ArrayList<Device> list = getDevicesPlatform(platform);
+            for (Device device : list) {
+                ArrayList<Device> l = devices.get(device.getName());
+                if (l == null) {
+                    l = new ArrayList<Device>();
+                    devices.put(device.getName(), l);
+                }
+                l.add(device);
             }
         }
     }
@@ -701,11 +708,13 @@ public class Cashmere {
             String kernelSource = sources.get(k);
             String deviceName = getDeviceNameSource(kernelSource);
             if (devices.containsKey(deviceName)) {
-                Device device = devices.get(deviceName);
-                if (device == null) {
+                ArrayList<Device> list = devices.get(deviceName);
+                if (list == null) {
                     logger.warn("{} not available on this machine", deviceName);
                 } else {
-                    device.addKernel(kernelSource);
+                    for (Device device : list) {
+                        device.addKernel(kernelSource);
+                    }
                 }
             }
         }
@@ -724,19 +733,23 @@ public class Cashmere {
      */
 
     private void initLibraries() {
-        Collection<Device> deviceCollection = devices.values();
-        for (Device device : deviceCollection) {
-            for (String name : initLibraryFuncs.keySet()) {
-                device.initializeLibrary(initLibraryFuncs.get(name));
+        Collection<ArrayList<Device>> deviceCollection = devices.values();
+        for (ArrayList<Device> l : deviceCollection) {
+            for (Device device : l) {
+                for (String name : initLibraryFuncs.keySet()) {
+                    device.initializeLibrary(initLibraryFuncs.get(name));
+                }
             }
         }
     }
 
     private void deinitLibraries() {
-        Collection<Device> deviceCollection = devices.values();
-        for (Device device : deviceCollection) {
-            for (String name : deInitLibraryFuncs.keySet()) {
-                device.deinitializeLibrary(deInitLibraryFuncs.get(name));
+        Collection<ArrayList<Device>> deviceCollection = devices.values();
+        for (ArrayList<Device> l : deviceCollection) {
+            for (Device device : l) {
+                for (String name : deInitLibraryFuncs.keySet()) {
+                    device.deinitializeLibrary(deInitLibraryFuncs.get(name));
+                }
             }
         }
     }
@@ -776,31 +789,36 @@ public class Cashmere {
     }
 
     private List<Device> getDevicesForKernel(String name) {
-        Collection<Device> deviceCollection = devices.values();
         ArrayList<Device> al = new ArrayList<Device>();
-        for (Device device : deviceCollection) {
-            if (device.registeredKernel(name)) {
-                al.add(device);
+        Collection<ArrayList<Device>> deviceCollection = devices.values();
+        for (ArrayList<Device> l : deviceCollection) {
+            for (Device device : l) {
+                if (device.registeredKernel(name)) {
+                    al.add(device);
+                }
             }
         }
         return al;
     }
 
     private synchronized Device pickDevice(String name) throws CashmereNotAvailable {
-        Collection<Device> deviceCollection = devices.values();
+        Collection<ArrayList<Device>> deviceCollection = devices.values();
         ArrayList<Device> al = new ArrayList<Device>();
         ArrayList<KernelDevice> kd = new ArrayList<KernelDevice>();
         boolean measuredSpeeds = true;
 
-        for (Device device : deviceCollection) {
-            if (device.registeredKernel(name)) {
-                KernelDevice d = new KernelDevice(name, device);
-                if (kernelSpeeds.get(d) == null) {
-                    measuredSpeeds = false;
-                } else {
-                    kd.add(d);
+        for (ArrayList<Device> list : deviceCollection) {
+            for (Device device : list) {
+
+                if (device.registeredKernel(name)) {
+                    KernelDevice d = new KernelDevice(name, device);
+                    if (kernelSpeeds.get(d) == null) {
+                        measuredSpeeds = false;
+                    } else {
+                        kd.add(d);
+                    }
+                    al.add(device);
                 }
-                al.add(device);
             }
         }
 
@@ -820,7 +838,12 @@ public class Cashmere {
     }
 
     private Device pickFastestDevice() throws CashmereNotAvailable {
-        ArrayList<Device> listDevices = new ArrayList<Device>(devices.values());
+        ArrayList<Device> listDevices = new ArrayList<Device>();
+
+        Collection<ArrayList<Device>> deviceCollection = devices.values();
+        for (ArrayList<Device> l : deviceCollection) {
+            listDevices.addAll(l);
+        }
 
         if (listDevices.size() > 0) {
             Collections.sort(listDevices);

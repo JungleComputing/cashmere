@@ -164,7 +164,7 @@ public class Device implements Comparable<Device> {
     private long offsetHostDevice;
 
     // keeping track of the number of kernels launched
-    private int launched;
+    int launched;
 
     // keeping track of the amount of memory that is reserved
     private long memoryReserved;
@@ -304,11 +304,11 @@ public class Device implements Comparable<Device> {
         double expectedTerminationDevice;
         synchronized (this) {
             factor = 1.0 / info.speed;
-            expectedTermination = nrKernelLaunches + 1;
+            expectedTermination = nrKernelLaunches + launched + 1;
         }
         synchronized (device) {
             factor = factor * device.info.speed;
-            expectedTerminationDevice = device.nrKernelLaunches + 1;
+            expectedTerminationDevice = device.nrKernelLaunches + device.launched + 1;
         }
 
         expectedTermination *= factor;
@@ -818,7 +818,11 @@ public class Device implements Comparable<Device> {
     }
 
     synchronized void setNotBusy() {
-        nrKernelLaunches--;
+        if (nrKernelLaunches > 0) {
+            // Note: not reliable since setBusy is only called for getKernel() and getLibFunc(),
+            // while setNotBusy is called when a launch is actually finished.
+            nrKernelLaunches--;
+        }
         launched--;
     }
 
