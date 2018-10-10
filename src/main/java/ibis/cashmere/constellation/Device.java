@@ -97,8 +97,8 @@ public class Device implements Comparable<Device> {
         // DAS-4
         // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 480", new DeviceInfo("fermi", 20, "gtx480", 256 * 5 * MB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 680", new DeviceInfo("fermi", 40, "gtx680", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 980", new DeviceInfo("fermi", 50, "gtx980", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN", new DeviceInfo("fermi", 60, "titan", 256 * 5 * MB));
+        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 980", new DeviceInfo("fermi", 50, "gtx980", 4 * GB));
+        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN", new DeviceInfo("fermi", 60, "titan", 6 * GB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("Tahiti", new DeviceInfo("hd7970", 60, "hd7970", 256 * 5 * MB));
         // OPENCL_TO_MCL_DEVICE_INFO.put("Tesla C2050", new DeviceInfo("fermi", 10, "c2050", 256 * 5 * MB));
 
