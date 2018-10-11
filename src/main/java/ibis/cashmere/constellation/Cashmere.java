@@ -84,9 +84,7 @@ public class Cashmere {
     /*
      * Members for constellation
      */
-    private final Constellation constellation;
-
-    private final ConstellationConfiguration[] executors;
+    private Constellation constellation;
 
     private final String localBase;
 
@@ -232,7 +230,7 @@ public class Cashmere {
      * @return true if this node is the {@link Constellation} master.
      */
     public static boolean isMaster() {
-        return cashmere.constellation.isMaster();
+        return getConstellation().isMaster();
     }
 
     /**
@@ -245,7 +243,7 @@ public class Cashmere {
      *                if an error occurs
      */
     public static ActivityIdentifier submit(Activity a) throws NoSuitableExecutorException {
-        return cashmere.constellation.submit(a);
+        return getConstellation().submit(a);
     }
 
     /**
@@ -354,7 +352,7 @@ public class Cashmere {
      * @return the overall {@link Timer}
      */
     public static synchronized Timer getOverallTimer() {
-        return cashmere.constellation.getOverallTimer();
+        return getConstellation().getOverallTimer();
     }
 
     /**
@@ -378,6 +376,12 @@ public class Cashmere {
      * @return the {@link Constellation} instance.
      */
     public static Constellation getConstellation() {
+        if (cashmere == null) {
+            throw new Error("Cashmere not initialized yet");
+        }
+        if (cashmere.constellation == null) {
+            throw new Error("Constellation not initialized yet");
+        }
         return cashmere.constellation;
     }
 
@@ -386,7 +390,7 @@ public class Cashmere {
      *
      */
     public static void done() {
-        cashmere.constellation.done();
+        getConstellation().done();
     }
 
     /*
@@ -471,6 +475,16 @@ public class Cashmere {
         }
     }
 
+    public static void createConstellation(ConstellationConfiguration[] e) throws ConstellationCreationException {
+        if (cashmere == null) {
+            throw new Error("Cashmere not initialized yet");
+        }
+        if (cashmere.constellation != null) {
+            throw new Error("Constellation already created");
+        }
+        cashmere.constellation = ConstellationFactory.createConstellation(e);
+    }
+
     /*
      * Initialization of Cashmere
      */
@@ -481,8 +495,9 @@ public class Cashmere {
 
         localBase = getLocalBase();
         asynchReads = new TypedProperties(props).getBooleanProperty("cashmere.asyncReads", false);
-        executors = Arrays.copyOf(e, e.length);
-        constellation = ConstellationFactory.createConstellation(e);
+        if (e != null) {
+            constellation = ConstellationFactory.createConstellation(e);
+        }
         initializeOpenCL();
         initializeBuffers(nrBuffers, sizeBuffer);
         initializeKernels(defines);
@@ -876,11 +891,11 @@ public class Cashmere {
     }
 
     private Timer createTimer(String standardDevice, String standardThread, String standardAction) {
-        return constellation.getTimer(standardDevice, standardThread, standardAction);
+        return getConstellation().getTimer(standardDevice, standardThread, standardAction);
     }
 
     private Timer createTimer() {
-        return constellation.getTimer();
+        return getConstellation().getTimer();
     }
 
     /*
