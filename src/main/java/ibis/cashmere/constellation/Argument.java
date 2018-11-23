@@ -71,9 +71,9 @@ public class Argument {
     /*
      * members for subclasses
      */
-    protected Pointer pointer;
+    private Pointer pointer;
     protected Direction direction;
-    protected cl_mem memObject;
+    private cl_mem memObject;
     private boolean readScheduled;
 
     /*

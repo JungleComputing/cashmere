@@ -18,12 +18,16 @@ package ibis.cashmere.constellation;
 
 import org.jocl.cl_command_queue;
 import org.jocl.cl_context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ArrayArgument extends Argument {
 
     protected cl_context context;
     protected cl_command_queue readQueue;
-    protected int referenceCount;
+    private int referenceCount;
+
+    private static final Logger memlogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device/memory");
 
     protected ArrayArgument(Direction d, cl_context context, cl_command_queue readQueue) {
         super(d);
@@ -39,6 +43,27 @@ class ArrayArgument extends Argument {
             transformBack();
         }
         super.clean();
+    }
+
+    protected synchronized int decrementAndGetRefCount() {
+        referenceCount--;
+        if (referenceCount == 0) {
+            memlogger.debug("  about to clean");
+            clean();
+            memlogger.debug("  did a clean");
+        } else {
+            if (memlogger.isDebugEnabled()) {
+                memlogger.debug("referenceCount for {}: {}", this, referenceCount);
+            }
+        }
+        return referenceCount;
+    }
+
+    protected void incRefCount() {
+        referenceCount++;
+        if (memlogger.isDebugEnabled()) {
+            memlogger.debug("Reference count for {}: {}", this, referenceCount);
+        }
     }
 
     protected void transform() {

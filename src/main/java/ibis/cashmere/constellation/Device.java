@@ -287,6 +287,24 @@ public class Device implements Comparable<Device> {
     }
 
     /**
+     * Get the type name of this device (i.e., fermi).
+     *
+     * @return the class name.
+     */
+    String getName() {
+        return info.name;
+    }
+
+    /**
+     * Get the nickname of this device (i.e. gtx980).
+     *
+     * @return the nickname.
+     */
+    String getNickName() {
+        return info.nickName;
+    }
+
+    /**
      * Compares this device with <code>Device</code> device in terms of when a device can launch kernels.
      * <p>
      * This method compares the number of kernel launches on a device to find out when a device is going to terminate.
@@ -854,14 +872,6 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    String getName() {
-        return info.name;
-    }
-
-    String getNickName() {
-        return info.nickName;
-    }
-
     /*
      * Handling events
      */
@@ -1019,13 +1029,9 @@ public class Device implements Comparable<Device> {
                 writeBufferEvents = new ArrayList<cl_event>();
                 map.put(k, makeNewArgument.apply(writeBufferEvents));
                 madeNewArgument = true;
-
             } else {
                 V v = map.get(k);
-                v.referenceCount++;
-                if (memlogger.isDebugEnabled()) {
-                    memlogger.debug("Reference count for {}: {}", v, v.referenceCount);
-                }
+                v.incRefCount();
                 madeNewArgument = false;
             }
         }
@@ -1102,24 +1108,9 @@ public class Device implements Comparable<Device> {
             return -1;
         }
 
-        boolean performClean;
+        int refCount = v.decrementAndGetRefCount();
 
-        synchronized (v) {
-            v.referenceCount--;
-            if (v.referenceCount == 0) {
-                memlogger.debug("  about to clean");
-                v.clean();
-                memlogger.debug("  did a clean");
-                performClean = true;
-            } else {
-                if (memlogger.isDebugEnabled()) {
-                    memlogger.debug("referenceCount for {}: {}", v, v.referenceCount);
-                }
-                performClean = false;
-            }
-        }
-
-        if (performClean) {
+        if (refCount == 0) {
             synchronized (map) {
                 map.remove(k);
             }
@@ -1134,7 +1125,7 @@ public class Device implements Comparable<Device> {
             }
         }
 
-        return v.referenceCount;
+        return refCount;
     }
 
     private <K, V extends ArrayArgument> V getArgumentGeneric(K k, Map<K, V> map) {
