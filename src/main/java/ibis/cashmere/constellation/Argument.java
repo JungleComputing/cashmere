@@ -37,6 +37,7 @@ import org.jocl.cl_mem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
 import ibis.util.ThreadPool;
 
 /**
@@ -125,10 +126,10 @@ public class Argument {
             if (memLogger.isDebugEnabled()) {
                 memLogger.debug("released");
             }
-            synchronized (Argument.class) {
-                allocatedBytes -= size;
-            }
             if (memLogger.isDebugEnabled()) {
+                synchronized (Argument.class) {
+                    allocatedBytes -= size;
+                }
                 memLogger.debug(String.format("deallocated: %4s, total: %s", toStringBytes(size), toStringBytes(allocatedBytes)));
             }
             memObject = null;
@@ -153,10 +154,10 @@ public class Argument {
         Device device = Device.getDevice(context);
         memObject = device.withAllocationError(() -> clCreateBuffer(context, flags, size, null, null));
         this.size = size;
-        synchronized (Argument.class) {
-            allocatedBytes += size;
-        }
         if (memLogger.isDebugEnabled()) {
+            synchronized (Argument.class) {
+                allocatedBytes += size;
+            }
             memLogger.debug(String.format("allocated: %6s, total: %s", toStringBytes(size), toStringBytes(allocatedBytes)));
         }
 

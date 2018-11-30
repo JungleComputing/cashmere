@@ -16,11 +16,9 @@
 
 package ibis.cashmere.constellation;
 
-import org.jocl.Pointer;
-
 class FloatArgument extends Argument {
 
     FloatArgument(float f, Direction d) {
-        super(Pointer.to(new float[] { f }), d, false);
+        super(Cashmere.cashmere.platform.toPointer(new float[] { f }), d, false);
     }
 }

@@ -37,6 +37,8 @@ import org.jocl.cl_event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
+
 /**
  * The abstract base class for {@link KernelLaunch} and {@link LibFuncLaunch} that contains shared code.
  */
@@ -248,7 +250,7 @@ public abstract class Launch {
     }
 
     /**
-     * Set an argument for this launch. The user is reponsible for copying the data to the device using
+     * Set an argument for this launch. The user is responsible for copying the data to the device using
      * {@link Device#copy(float[],Argument.Direction)}.
      *
      * @param a
@@ -266,7 +268,7 @@ public abstract class Launch {
     }
 
     /**
-     * Set an argument for this launch. The user is reponsible for copying the data to the device using
+     * Set an argument for this launch. The user is responsible for copying the data to the device using
      * {@link Device#copy(double[],Argument.Direction)}.
      *
      * @param a
@@ -284,7 +286,7 @@ public abstract class Launch {
     }
 
     /**
-     * Set an argument for this launch. The user is reponsible for copying the data to the device using
+     * Set an argument for this launch. The user is responsible for copying the data to the device using
      * {@link Device#copy(Buffer,Argument.Direction)}.
      *
      * @param a
@@ -302,7 +304,7 @@ public abstract class Launch {
     }
 
     /**
-     * Set an argument for this launch. The user is reponsible for copying the data to the device using
+     * Set an argument for this launch. The user is responsible for copying the data to the device using
      * {@link Device#copy(Buffer,Pointer)}.
      *
      * @param a
@@ -320,7 +322,7 @@ public abstract class Launch {
     }
 
     /**
-     * Set an argument for this launch. The user is reponsible for copying the data to the device using
+     * Set an argument for this launch. The user is responsible for copying the data to the device using
      * {@link Device#copy(int[],Argument.Direction)}.
      *
      * @param a
@@ -338,7 +340,7 @@ public abstract class Launch {
     }
 
     /**
-     * Set an argument for this launch. The user is reponsible for copying the data to the device using
+     * Set an argument for this launch. The user is responsible for copying the data to the device using
      * {@link Device#copy(byte[],Argument.Direction)}.
      *
      * @param a

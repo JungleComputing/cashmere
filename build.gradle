@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    api 'org.jcuda:jcuda:0.8.0'
     api 'nl.junglecomputing.cashmere:jocl:2.0.1'
     api 'nl.junglecomputing:constellation:2.0.0'
     api 'nl.junglecomputing.ipl:ipl-support:2.3.1'

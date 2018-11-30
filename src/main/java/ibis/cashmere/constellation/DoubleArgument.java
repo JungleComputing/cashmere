@@ -18,9 +18,9 @@ package ibis.cashmere.constellation;
 
 import org.jocl.Pointer;
 
-class DoubleArgument extends Argument {
+public class DoubleArgument extends Argument {
 
-    DoubleArgument(double f, Direction d) {
+    public DoubleArgument(double f, Direction d) {
         super(Pointer.to(new double[] { f }), d, false);
     }
 }

@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package ibis.cashmere.constellation;
+package ibis.cashmere.constellation.deviceAPI;
 
-import static ibis.constellation.util.MemorySizes.GB;
-import static ibis.constellation.util.MemorySizes.MB;
 import static ibis.constellation.util.MemorySizes.toStringBytes;
 import static org.jocl.CL.CL_CONTEXT_PLATFORM;
 import static org.jocl.CL.CL_MEM_READ_WRITE;
@@ -39,10 +37,8 @@ import static org.jocl.CL.clReleaseMemObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -63,69 +59,16 @@ import org.jocl.cl_queue_properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.Argument;
+import ibis.cashmere.constellation.Buffer;
+import ibis.cashmere.constellation.Cashmere;
+import ibis.cashmere.constellation.DeInitLibraryFunction;
+import ibis.cashmere.constellation.InitLibraryFunction;
+
 /**
  * Class that represents a many-core <code>Device</code>.
  */
 public class Device implements Comparable<Device> {
-
-    /*
-     * Administration of different kinds of devices
-     */
-    private static class DeviceInfo {
-        final String name;
-        final int speed;
-        final String nickName;
-        final long memSize;
-
-        DeviceInfo(String name, int speed, String nickName, long memSize) {
-            this.name = name;
-            this.speed = speed;
-            this.nickName = nickName;
-            this.memSize = memSize;
-        }
-
-        @Override
-        public String toString() {
-            return nickName;
-        }
-    }
-
-    private static final Map<String, DeviceInfo> OPENCL_TO_MCL_DEVICE_INFO;
-    private static final Set<String> ACCELERATORS;
-    static {
-        OPENCL_TO_MCL_DEVICE_INFO = new HashMap<String, DeviceInfo>();
-        // DAS-4
-        // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 480", new DeviceInfo("fermi", 20, "gtx480", 256 * 5 * MB));
-        // OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 680", new DeviceInfo("fermi", 40, "gtx680", 256 * 5 * MB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX 980", new DeviceInfo("fermi", 50, "gtx980", 3 * GB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN", new DeviceInfo("fermi", 60, "titan", 5 * GB));
-        // OPENCL_TO_MCL_DEVICE_INFO.put("Tahiti", new DeviceInfo("hd7970", 60, "hd7970", 256 * 5 * MB));
-        // OPENCL_TO_MCL_DEVICE_INFO.put("Tesla C2050", new DeviceInfo("fermi", 10, "c2050", 256 * 5 * MB));
-
-        // GPUs
-        OPENCL_TO_MCL_DEVICE_INFO.put("GeForce GTX TITAN X", new DeviceInfo("fermi", 60, "titanx", 11 * GB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("TITAN X (Pascal)", new DeviceInfo("fermi", 60, "titanx-pascal", 11 * GB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K20m", new DeviceInfo("fermi", 40, "k20", 5 * GB));
-        OPENCL_TO_MCL_DEVICE_INFO.put("Tesla K40c", new DeviceInfo("fermi", 60, "k40", 11 * GB));
-
-        // CPUs
-        OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz",
-                new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-
-        // old ones
-        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           E5620  @ 2.40GHz",
-        //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU E5-2630 0 @ 2.30GHz",
-        //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Xeon(R) CPU           X5650  @ 2.67GHz",
-        //         new DeviceInfo("xeon_e5620", 1, "xeon_e5620", 256 * 5 * MB));
-
-        // OPENCL_TO_MCL_DEVICE_INFO.put("Intel(R) Many Integrated Core Acceleration Card",
-        //         new DeviceInfo("xeon_phi", 10, "xeon_phi", 7 * GB));
-
-        ACCELERATORS = new HashSet<String>();
-        ACCELERATORS.add("cpu");
-    }
 
     /*
      * loggers
@@ -146,7 +89,7 @@ public class Device implements Comparable<Device> {
     cl_command_queue writeQueue;
     cl_command_queue executeQueue;
     cl_command_queue readQueue;
-    int nrKernelLaunches;
+    private int nrKernelLaunches;
 
     // A static variable that keeps track of all the devices in the compute node
     private static final Map<cl_context, Device> devices = new HashMap<cl_context, Device>();
@@ -164,7 +107,7 @@ public class Device implements Comparable<Device> {
     private long offsetHostDevice;
 
     // keeping track of the number of kernels launched
-    int launched;
+    private int launched;
 
     // keeping track of the amount of memory that is reserved
     private long memoryReserved;
@@ -212,7 +155,7 @@ public class Device implements Comparable<Device> {
     /*
      * The constructor
      */
-    Device(cl_device_id device, cl_platform_id platform, Cashmere cashmere) {
+    public Device(cl_device_id device, cl_platform_id platform, Cashmere cashmere) {
         this.cashmere = cashmere;
         this.deviceID = device;
 
@@ -283,7 +226,7 @@ public class Device implements Comparable<Device> {
      * @return the capacity of this device in bytes.
      */
     public long getMemoryCapacity() {
-        return info.memSize;
+        return info.getMemSize();
     }
 
     /**
@@ -291,8 +234,8 @@ public class Device implements Comparable<Device> {
      *
      * @return the class name.
      */
-    String getName() {
-        return info.name;
+    public String getName() {
+        return info.getName();
     }
 
     /**
@@ -301,7 +244,7 @@ public class Device implements Comparable<Device> {
      * @return the nickname.
      */
     String getNickName() {
-        return info.nickName;
+        return info.getNickName();
     }
 
     /**
@@ -321,12 +264,12 @@ public class Device implements Comparable<Device> {
         double expectedTermination;
         double expectedTerminationDevice;
         synchronized (this) {
-            factor = 1.0 / info.speed;
-            expectedTermination = nrKernelLaunches + launched + 1;
+            factor = 1.0 / info.getSpeed();
+            expectedTermination = getNrKernelLaunches() + getLaunched() + 1;
         }
         synchronized (device) {
-            factor = factor * device.info.speed;
-            expectedTerminationDevice = device.nrKernelLaunches + device.launched + 1;
+            factor = factor * device.info.getSpeed();
+            expectedTerminationDevice = device.getNrKernelLaunches() + device.getLaunched() + 1;
         }
 
         expectedTermination *= factor;
@@ -738,11 +681,11 @@ public class Device implements Comparable<Device> {
      * Initialization of the device
      */
 
-    void initializeLibrary(InitLibraryFunction func) {
+    public void initializeLibrary(InitLibraryFunction func) {
         func.initialize(context, executeQueue);
     }
 
-    void deinitializeLibrary(DeInitLibraryFunction func) {
+    public void deinitializeLibrary(DeInitLibraryFunction func) {
         func.deinitialize();
     }
 
@@ -750,7 +693,7 @@ public class Device implements Comparable<Device> {
         return offsetHostDevice;
     }
 
-    void addKernel(String kernelSource) {
+    public void addKernel(String kernelSource) {
         cl_program program = clCreateProgramWithSource(context, 1, new String[] { kernelSource },
                 new long[] { kernelSource.length() }, null);
 
@@ -773,18 +716,18 @@ public class Device implements Comparable<Device> {
         clCreateKernelsInProgram(program, 1, kernelArray, null);
         cl_kernel kernel = kernelArray[0];
 
-        String nameKernel = OpenCLInfo.getName(kernel);
+        String nameKernel = CudaInfo.getName(kernel);
         this.kernels.put(nameKernel, program);
 
         // writeBinary(program, nameKernel, info.name);
 
-        logger.info("Registered kernel " + nameKernel + " on device " + info.nickName);
+        logger.info("Registered kernel " + nameKernel + " on device " + info.getNickName());
     }
 
     /*
      * Memory allocation and arguments
      */
-    <T> T withAllocationError(Supplier<T> s) {
+    public <T> T withAllocationError(Supplier<T> s) {
         try {
             return s.get();
         } catch (CLException e) {
@@ -796,27 +739,27 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    FloatArrayArgument getArgument(float[] a) {
+    public FloatArrayArgument getArgument(float[] a) {
         return getArgumentGeneric(a, floatArrayArguments);
     }
 
-    DoubleArrayArgument getArgument(double[] a) {
+    public DoubleArrayArgument getArgument(double[] a) {
         return getArgumentGeneric(a, doubleArrayArguments);
     }
 
-    BufferArgument getArgument(Buffer a) {
+    public BufferArgument getArgument(Buffer a) {
         return getArgumentGeneric(a, bufferArguments);
     }
 
-    PointerArgument getArgument(Pointer a) {
+    public PointerArgument getArgument(Pointer a) {
         return getArgumentGeneric(a, pointerArguments);
     }
 
-    IntArrayArgument getArgument(int[] a) {
+    public IntArrayArgument getArgument(int[] a) {
         return getArgumentGeneric(a, intArrayArguments);
     }
 
-    ByteArrayArgument getArgument(byte[] a) {
+    public ByteArrayArgument getArgument(byte[] a) {
         return getArgumentGeneric(a, byteArrayArguments);
     }
 
@@ -827,24 +770,24 @@ public class Device implements Comparable<Device> {
         return devices.get(context);
     }
 
-    synchronized void setBusy() {
-        nrKernelLaunches++;
+    public synchronized void setBusy() {
+        setNrKernelLaunches(getNrKernelLaunches() + 1);
     }
 
-    synchronized void launched() {
-        launched++;
+    public synchronized void launched() {
+        setLaunched(getLaunched() + 1);
     }
 
-    synchronized void setNotBusy() {
-        if (nrKernelLaunches > 0) {
+    public synchronized void setNotBusy() {
+        if (getNrKernelLaunches() > 0) {
             // Note: not reliable since setBusy is only called for getKernel() and getLibFunc(),
             // while setNotBusy is called when a launch is actually finished.
-            nrKernelLaunches--;
+            setNrKernelLaunches(getNrKernelLaunches() - 1);
         }
-        launched--;
+        setLaunched(getLaunched() - 1);
     }
 
-    boolean asynchReads() {
+    public boolean asynchReads() {
         return cashmere.isAsynchReads();
     }
 
@@ -856,7 +799,7 @@ public class Device implements Comparable<Device> {
         return getKernelProgram(program);
     }
 
-    cl_kernel getKernel(String name) {
+    public cl_kernel getKernel(String name) {
         if (name == null) {
             return getKernel();
         }
@@ -864,7 +807,7 @@ public class Device implements Comparable<Device> {
         return getKernelProgram(program);
     }
 
-    boolean registeredKernel(String name) {
+    public boolean registeredKernel(String name) {
         if (name == null) {
             return kernels.size() == 1;
         } else {
@@ -876,79 +819,79 @@ public class Device implements Comparable<Device> {
      * Handling events
      */
 
-    cl_event getWriteEvent(float[] a) {
+    public cl_event getWriteEvent(float[] a) {
         return getWriteEventGeneric(a, writeEventsFloats);
     }
 
-    cl_event getWriteEvent(double[] a) {
+    public cl_event getWriteEvent(double[] a) {
         return getWriteEventGeneric(a, writeEventsDoubles);
     }
 
-    cl_event getWriteEvent(int[] a) {
+    public cl_event getWriteEvent(int[] a) {
         return getWriteEventGeneric(a, writeEventsInts);
     }
 
-    cl_event getWriteEvent(byte[] a) {
+    public cl_event getWriteEvent(byte[] a) {
         return getWriteEventGeneric(a, writeEventsBytes);
     }
 
-    cl_event getWriteEvent(Buffer a) {
+    public cl_event getWriteEvent(Buffer a) {
         return getWriteEventGeneric(a, writeEventsBuffers);
     }
 
-    cl_event getWriteEvent(Pointer a) {
+    public cl_event getWriteEvent(Pointer a) {
         return getWriteEventGeneric(a, writeEventsPointers);
     }
 
-    void addExecuteEvent(float[] a, cl_event event) {
+    public void addExecuteEvent(float[] a, cl_event event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsFloats));
     }
 
-    void addExecuteEvent(double[] a, cl_event event) {
+    public void addExecuteEvent(double[] a, cl_event event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsDoubles));
     }
 
-    void addExecuteEvent(int[] a, cl_event event) {
+    public void addExecuteEvent(int[] a, cl_event event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsInts));
     }
 
-    void addExecuteEvent(byte[] a, cl_event event) {
+    public void addExecuteEvent(byte[] a, cl_event event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsBytes));
     }
 
-    void addExecuteEvent(Buffer a, cl_event event) {
+    public void addExecuteEvent(Buffer a, cl_event event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsBuffers));
     }
 
-    void addExecuteEvent(Pointer a, cl_event event) {
+    public void addExecuteEvent(Pointer a, cl_event event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsPointers));
     }
 
-    void removeExecuteEvent(float[] a, cl_event event) {
+    public void removeExecuteEvent(float[] a, cl_event event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsFloats));
     }
 
-    void removeExecuteEvent(double[] a, cl_event event) {
+    public void removeExecuteEvent(double[] a, cl_event event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsDoubles));
     }
 
-    void removeExecuteEvent(int[] a, cl_event event) {
+    public void removeExecuteEvent(int[] a, cl_event event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsInts));
     }
 
-    void removeExecuteEvent(byte[] a, cl_event event) {
+    public void removeExecuteEvent(byte[] a, cl_event event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsBytes));
     }
 
-    void removeExecuteEvent(Buffer a, cl_event event) {
+    public void removeExecuteEvent(Buffer a, cl_event event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsBuffers));
     }
 
-    void removeExecuteEvent(Pointer a, cl_event event) {
+    public void removeExecuteEvent(Pointer a, cl_event event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsPointers));
     }
 
-    void cleanWriteEvents(ArrayList<cl_event> events) {
+    public void cleanWriteEvents(ArrayList<cl_event> events) {
         for (cl_event event : events) {
             cleanWriteEvent(event, writeEventsFloats, writeEventsFloatsInversed);
             cleanWriteEvent(event, writeEventsDoubles, writeEventsDoublesInversed);
@@ -981,19 +924,6 @@ public class Device implements Comparable<Device> {
     /*
      * Initialization of the device
      */
-
-    private DeviceInfo getDeviceInfo(cl_device_id device) {
-        String openCLDeviceName = OpenCLInfo.getName(device);
-        if (OPENCL_TO_MCL_DEVICE_INFO.containsKey(openCLDeviceName)) {
-            DeviceInfo deviceInfo = OPENCL_TO_MCL_DEVICE_INFO.get(openCLDeviceName);
-            logger.info("Found MCL device: " + deviceInfo.name + " (" + openCLDeviceName + ")");
-            return deviceInfo;
-        } else {
-            logger.warn("Found OpenCL device: " + openCLDeviceName);
-            logger.warn("This is an unkown MCL device, please add it to MCL");
-            return new DeviceInfo("unknown", 1, "Unknown", 1 * GB);
-        }
-    }
 
     private void measureTimeOffset() {
         float f[] = { 0.0f };
@@ -1273,5 +1203,21 @@ public class Device implements Comparable<Device> {
                 }
             }
         }
+    }
+
+    public int getNrKernelLaunches() {
+        return nrKernelLaunches;
+    }
+
+    public void setNrKernelLaunches(int nrKernelLaunches) {
+        this.nrKernelLaunches = nrKernelLaunches;
+    }
+
+    public int getLaunched() {
+        return launched;
+    }
+
+    public void setLaunched(int launched) {
+        this.launched = launched;
     }
 }

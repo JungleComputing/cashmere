@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
+
 abstract class ManyCoreUnit {
 
     protected Device device;

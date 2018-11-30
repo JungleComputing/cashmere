@@ -16,6 +16,8 @@
 
 package ibis.cashmere.constellation;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
+
 /**
  * A <code>Kernel</code> represents an MCL kernel. From this kernel one can create more than one {@link KernelLaunch} instances
  * with which the kernel can be launched.

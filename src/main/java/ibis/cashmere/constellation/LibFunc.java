@@ -16,6 +16,8 @@
 
 package ibis.cashmere.constellation;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
+
 /**
  * A <code>LibFunc</code> represents an entry point to an OpenCL library. From this <code>LibFunc</code> we can create more than
  * one {@link LibFuncLaunch} instances with which the library function can be launched.

@@ -26,6 +26,7 @@ import java.util.Arrays;
 import org.jocl.cl_event;
 import org.jocl.cl_kernel;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
 import ibis.util.ThreadPool;
 
 /**

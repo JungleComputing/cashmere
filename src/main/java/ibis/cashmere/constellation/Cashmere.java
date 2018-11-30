@@ -16,18 +16,12 @@
 
 package ibis.cashmere.constellation;
 
-import static org.jocl.CL.CL_DEVICE_TYPE_ALL;
-import static org.jocl.CL.clGetDeviceIDs;
-import static org.jocl.CL.clGetEventProfilingInfo;
-import static org.jocl.CL.clGetPlatformIDs;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,15 +33,11 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import org.jocl.CL;
-import org.jocl.Pointer;
-import org.jocl.Sizeof;
-import org.jocl.cl_device_id;
-import org.jocl.cl_event;
-import org.jocl.cl_platform_id;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.Platform;
 import ibis.constellation.Activity;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Constellation;
@@ -77,7 +67,6 @@ import ibis.util.TypedProperties;
 public class Cashmere {
 
     private static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Cashmere");
-    private static final Logger loggerOpenCL = LoggerFactory.getLogger("ibis.cashmere.constellation.Cashmere/OpenCL");
 
     private static Cashmere cashmere = null;
 
@@ -98,7 +87,7 @@ public class Cashmere {
     private final boolean asynchReads;
 
     // Maps an MCL device name to a Device
-    private final Map<String, ArrayList<Device>> devices = new HashMap<String, ArrayList<Device>>();
+    private final Map<String, List<Device>> devices = new HashMap<String, List<Device>>();
 
     // A list of Kernels and Libfuncs
     private final List<ManyCoreUnit> manyCoreUnits = Collections.synchronizedList(new ArrayList<ManyCoreUnit>());
@@ -109,6 +98,8 @@ public class Cashmere {
     private final Map<String, InitLibraryFunction> initLibraryFuncs = new HashMap<String, InitLibraryFunction>();
 
     private final Map<String, DeInitLibraryFunction> deInitLibraryFuncs = new HashMap<String, DeInitLibraryFunction>();
+
+    Platform platform;
 
     /*
      * The public interface to Cashmere
@@ -397,18 +388,12 @@ public class Cashmere {
      * Package section of Cashmere
      */
 
-    boolean isAsynchReads() {
+    public boolean isAsynchReads() {
         return asynchReads;
     }
 
     synchronized static void addTimeForKernel(String kernelName, Device device, double time) {
         cashmere.addTime(kernelName, device, time);
-    }
-
-    static long getValue(cl_event event, int command) {
-        long[] value = new long[1];
-        clGetEventProfilingInfo(event, command, Sizeof.cl_ulong, Pointer.to(value), null);
-        return value[0];
     }
 
     /*
@@ -447,17 +432,18 @@ public class Cashmere {
             double expectedTermination;
             double expectedTerminationDevice;
             synchronized (this.device) {
-                expectedTermination = (this.device.nrKernelLaunches + this.device.launched) * kernelSpeeds.get(this);
+                expectedTermination = (this.device.getNrKernelLaunches() + this.device.getLaunched()) * kernelSpeeds.get(this);
                 if (logger.isInfoEnabled()) {
-                    logger.info("" + this + ": launches = " + (this.device.nrKernelLaunches + this.device.launched) + ", speed = "
-                            + kernelSpeeds.get(this));
+                    logger.info("" + this + ": launches = " + (this.device.getNrKernelLaunches() + this.device.getLaunched())
+                            + ", speed = " + kernelSpeeds.get(this));
                 }
             }
             synchronized (kd.device) {
-                expectedTerminationDevice = (kd.device.nrKernelLaunches + kd.device.launched + 1) * kernelSpeeds.get(kd);
+                expectedTerminationDevice = (kd.device.getNrKernelLaunches() + kd.device.getLaunched() + 1)
+                        * kernelSpeeds.get(kd);
                 if (logger.isInfoEnabled()) {
-                    logger.info("" + kd + ": launches = " + (kd.device.nrKernelLaunches + kd.device.launched) + ", speed = "
-                            + kernelSpeeds.get(kd));
+                    logger.info("" + kd + ": launches = " + (kd.device.getNrKernelLaunches() + kd.device.getLaunched())
+                            + ", speed = " + kernelSpeeds.get(kd));
                 }
             }
             if (logger.isInfoEnabled()) {
@@ -498,7 +484,7 @@ public class Cashmere {
         if (e != null) {
             constellation = ConstellationFactory.createConstellation(e);
         }
-        initializeOpenCL();
+        platform = Platform.initializePlatform(props, devices, this);
         initializeBuffers(nrBuffers, sizeBuffer);
         initializeKernels(defines);
     }
@@ -513,108 +499,6 @@ public class Cashmere {
             localBase = "LOCAL-" + r.nextInt() + "-";
         }
         return localBase;
-    }
-
-    private void initializeOpenCL() {
-        try {
-            CL.setExceptionsEnabled(true);
-
-            cl_platform_id[] platforms = getPlatforms();
-
-            if (loggerOpenCL.isInfoEnabled()) {
-                loggerOpenCL.info("Found {} platform(s):", platforms.length);
-                for (int i = 0; i < platforms.length; i++) {
-                    loggerOpenCL.info(OpenCLInfo.getName(platforms[i]));
-                }
-            }
-
-            getDevices(platforms);
-        } catch (Throwable e) {
-            logger.warn("Could not initialize OpenCL", e);
-        }
-    }
-
-    private cl_platform_id[] getPlatforms() {
-        // In some cases, Intel publishes two platforms with the same device
-        // The only difference in the platform information is the version: OpenCL 1.2 or OpenCL 1.2 LINUX.
-        // This method filters one of the platforms
-
-        ArrayList<cl_device_id> devicesSeen = new ArrayList<cl_device_id>();
-        ArrayList<cl_platform_id> platformsExcluded = new ArrayList<cl_platform_id>();
-        ArrayList<cl_platform_id> platforms = new ArrayList<cl_platform_id>();
-
-        platforms.addAll(Arrays.asList(getPlatformIDs()));
-
-        for (cl_platform_id platform : platforms) {
-            cl_device_id[] devices = getDeviceIDs(platform);
-
-            for (cl_device_id device : devices) {
-                if (devicesSeen.contains(device)) {
-                    platformsExcluded.add(platform);
-                    if (loggerOpenCL.isInfoEnabled()) {
-                        loggerOpenCL.info("Excluding platform {}", OpenCLInfo.getName(platform));
-                    }
-                }
-                devicesSeen.add(device);
-            }
-        }
-
-        platforms.removeAll(platformsExcluded);
-        cl_platform_id[] array = new cl_platform_id[platforms.size()];
-
-        return platforms.toArray(array);
-    }
-
-    private cl_platform_id[] getPlatformIDs() {
-        int numPlatformsArray[] = new int[1];
-        clGetPlatformIDs(0, null, numPlatformsArray);
-        int numPlatforms = numPlatformsArray[0];
-
-        cl_platform_id platforms[] = new cl_platform_id[numPlatforms];
-        clGetPlatformIDs(platforms.length, platforms, null);
-
-        return platforms;
-    }
-
-    private cl_device_id[] getDeviceIDs(cl_platform_id platform) {
-        int numDevicesArray[] = new int[1];
-        clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, null, numDevicesArray);
-        int numDevices = numDevicesArray[0];
-
-        cl_device_id[] device_ids = new cl_device_id[numDevices];
-        clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, numDevices, device_ids, null);
-
-        return device_ids;
-    }
-
-    private void getDevices(cl_platform_id[] platforms) {
-        for (cl_platform_id platform : platforms) {
-            ArrayList<Device> list = getDevicesPlatform(platform);
-            for (Device device : list) {
-                ArrayList<Device> l = devices.get(device.getName());
-                if (l == null) {
-                    l = new ArrayList<Device>();
-                    devices.put(device.getName(), l);
-                }
-                l.add(device);
-            }
-        }
-    }
-
-    private ArrayList<Device> getDevicesPlatform(cl_platform_id platform) {
-
-        ArrayList<Device> devices = new ArrayList<Device>();
-
-        cl_device_id[] device_ids = getDeviceIDs(platform);
-
-        for (cl_device_id device : device_ids) {
-            Device d = new Device(device, platform, this);
-            if (!d.getName().equals("unknown")) {
-                devices.add(d);
-            }
-        }
-
-        return devices;
     }
 
     private void initializeBuffers(int nrBuffers, int sizeBuffer) {
@@ -642,7 +526,7 @@ public class Cashmere {
             ZipInputStream zip = new ZipInputStream(jar.openStream());
             ZipEntry ze = null;
             while ((ze = zip.getNextEntry()) != null) {
-                if (ze.getName().endsWith(".cl")) {
+                if (ze.getName().endsWith(platform.getSuffix())) {
                     BufferedInputStream bis = new BufferedInputStream(zip);
                     byte[] bytes = new byte[(int) ze.getSize()];
                     int offset = 0;
@@ -723,7 +607,7 @@ public class Cashmere {
             String kernelSource = sources.get(k);
             String deviceName = getDeviceNameSource(kernelSource);
             if (devices.containsKey(deviceName)) {
-                ArrayList<Device> list = devices.get(deviceName);
+                List<Device> list = devices.get(deviceName);
                 if (list == null) {
                     logger.warn("{} not available on this machine", deviceName);
                 } else {
@@ -748,8 +632,8 @@ public class Cashmere {
      */
 
     private void initLibraries() {
-        Collection<ArrayList<Device>> deviceCollection = devices.values();
-        for (ArrayList<Device> l : deviceCollection) {
+        Collection<List<Device>> deviceCollection = devices.values();
+        for (List<Device> l : deviceCollection) {
             for (Device device : l) {
                 for (String name : initLibraryFuncs.keySet()) {
                     device.initializeLibrary(initLibraryFuncs.get(name));
@@ -759,8 +643,8 @@ public class Cashmere {
     }
 
     private void deinitLibraries() {
-        Collection<ArrayList<Device>> deviceCollection = devices.values();
-        for (ArrayList<Device> l : deviceCollection) {
+        Collection<List<Device>> deviceCollection = devices.values();
+        for (List<Device> l : deviceCollection) {
             for (Device device : l) {
                 for (String name : deInitLibraryFuncs.keySet()) {
                     device.deinitializeLibrary(deInitLibraryFuncs.get(name));
@@ -805,8 +689,8 @@ public class Cashmere {
 
     private List<Device> getDevicesForKernel(String name) {
         ArrayList<Device> al = new ArrayList<Device>();
-        Collection<ArrayList<Device>> deviceCollection = devices.values();
-        for (ArrayList<Device> l : deviceCollection) {
+        Collection<List<Device>> deviceCollection = devices.values();
+        for (List<Device> l : deviceCollection) {
             for (Device device : l) {
                 if (device.registeredKernel(name)) {
                     al.add(device);
@@ -817,12 +701,12 @@ public class Cashmere {
     }
 
     private synchronized Device pickDevice(String name) throws CashmereNotAvailable {
-        Collection<ArrayList<Device>> deviceCollection = devices.values();
+        Collection<List<Device>> deviceCollection = devices.values();
         ArrayList<Device> al = new ArrayList<Device>();
         ArrayList<KernelDevice> kd = new ArrayList<KernelDevice>();
         boolean measuredSpeeds = true;
 
-        for (ArrayList<Device> list : deviceCollection) {
+        for (List<Device> list : deviceCollection) {
             for (Device device : list) {
 
                 if (device.registeredKernel(name)) {
@@ -855,8 +739,8 @@ public class Cashmere {
     private Device pickFastestDevice() throws CashmereNotAvailable {
         ArrayList<Device> listDevices = new ArrayList<Device>();
 
-        Collection<ArrayList<Device>> deviceCollection = devices.values();
-        for (ArrayList<Device> l : deviceCollection) {
+        Collection<List<Device>> deviceCollection = devices.values();
+        for (List<Device> l : deviceCollection) {
             listDevices.addAll(l);
         }
 
