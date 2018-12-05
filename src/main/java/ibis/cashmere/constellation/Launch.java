@@ -29,7 +29,6 @@ import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.jocl.Pointer;
 import org.jocl.Sizeof;
 import org.jocl.cl_command_queue;
 import org.jocl.cl_context;
@@ -38,6 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.deviceAPI.Pointer;
 
 /**
  * The abstract base class for {@link KernelLaunch} and {@link LibFuncLaunch} that contains shared code.
@@ -45,7 +46,6 @@ import ibis.cashmere.constellation.deviceAPI.Device;
 public abstract class Launch {
 
     protected static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Launch");
-    protected static final Logger eventLogger = Event.logger;
 
     protected String name;
     protected String threadName;
@@ -59,9 +59,9 @@ public abstract class Launch {
     protected cl_command_queue executeQueue;
     protected cl_command_queue readQueue;
 
-    protected ArrayList<cl_event> writeBufferEvents;
-    protected ArrayList<cl_event> executeEvents;
-    protected ArrayList<cl_event> readBufferEvents;
+    protected ArrayList<DeviceEvent> writeBufferEvents;
+    protected ArrayList<DeviceEvent> executeEvents;
+    protected ArrayList<DeviceEvent> readBufferEvents;
 
     protected boolean launched;
     protected boolean finished;
@@ -91,9 +91,9 @@ public abstract class Launch {
         this.executeQueue = device.executeQueue;
         this.readQueue = device.readQueue;
 
-        this.writeBufferEvents = new ArrayList<cl_event>();
-        this.executeEvents = new ArrayList<cl_event>();
-        this.readBufferEvents = new ArrayList<cl_event>();
+        this.writeBufferEvents = new ArrayList<DeviceEvent>();
+        this.executeEvents = new ArrayList<DeviceEvent>();
+        this.readBufferEvents = new ArrayList<DeviceEvent>();
 
         this.launched = false;
         this.finished = false;
@@ -378,7 +378,7 @@ public abstract class Launch {
      * Methods for subclasses
      */
 
-    protected void registerExecuteEventToDevice(cl_event event) {
+    protected void registerExecuteEventToDevice(DeviceEvent event) {
         for (float[] fs : noCopyFloats) {
             device.addExecuteEvent(fs, event);
         }
@@ -463,13 +463,13 @@ public abstract class Launch {
         noCopyPointers.clear();
     }
 
-    private void removeExecuteEventsFromDevice(ArrayList<cl_event> executeEvents) {
-        for (cl_event event : executeEvents) {
+    private void removeExecuteEventsFromDevice(ArrayList<DeviceEvent> executeEvents2) {
+        for (DeviceEvent event : executeEvents2) {
             removeExecuteEventFromDevice(event);
         }
     }
 
-    private void removeExecuteEventFromDevice(cl_event event) {
+    private void removeExecuteEventFromDevice(DeviceEvent event) {
         for (float[] fs : noCopyFloats) {
             device.removeExecuteEvent(fs, event);
         }
@@ -490,12 +490,12 @@ public abstract class Launch {
         }
     }
 
-    private void clean(String type, ArrayList<cl_event> events) {
-        for (cl_event event : events) {
+    private void clean(String type, ArrayList<DeviceEvent> events) {
+        for (DeviceEvent event : events) {
             if (eventLogger.isDebugEnabled()) {
                 eventLogger.debug("About to clean event {}", event);
                 eventLogger.debug("Removing {} from Launch.{}Events", event, type);
-                Event.showEvent(type, event);
+                event.showEvent(type);
             }
             Event.clean(event);
         }
@@ -579,7 +579,7 @@ public abstract class Launch {
         }
     }
 
-    private void addWriteEvent(cl_event event) {
+    private void addWriteEvent(DeviceEvent event) {
         if (event != null) {
             if (eventLogger.isDebugEnabled()) {
                 eventLogger.debug("Storing {} in Launch.writeBufferEvents", event);

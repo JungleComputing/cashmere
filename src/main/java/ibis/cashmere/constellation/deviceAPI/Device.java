@@ -17,21 +17,12 @@
 package ibis.cashmere.constellation.deviceAPI;
 
 import static ibis.constellation.util.MemorySizes.toStringBytes;
-import static org.jocl.CL.CL_CONTEXT_PLATFORM;
 import static org.jocl.CL.CL_MEM_READ_WRITE;
 import static org.jocl.CL.CL_PROFILING_COMMAND_QUEUED;
-import static org.jocl.CL.CL_PROGRAM_BUILD_LOG;
-import static org.jocl.CL.CL_QUEUE_PROFILING_ENABLE;
-import static org.jocl.CL.CL_QUEUE_PROPERTIES;
 import static org.jocl.CL.CL_TRUE;
-import static org.jocl.CL.clBuildProgram;
 import static org.jocl.CL.clCreateBuffer;
-import static org.jocl.CL.clCreateCommandQueueWithProperties;
-import static org.jocl.CL.clCreateContext;
 import static org.jocl.CL.clCreateKernelsInProgram;
-import static org.jocl.CL.clCreateProgramWithSource;
 import static org.jocl.CL.clEnqueueWriteBuffer;
-import static org.jocl.CL.clGetProgramBuildInfo;
 import static org.jocl.CL.clReleaseMemObject;
 
 import java.util.ArrayList;
@@ -44,38 +35,38 @@ import java.util.function.Supplier;
 
 import org.jocl.CL;
 import org.jocl.CLException;
-import org.jocl.Pointer;
 import org.jocl.Sizeof;
 import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_context_properties;
 import org.jocl.cl_device_id;
-import org.jocl.cl_event;
 import org.jocl.cl_kernel;
 import org.jocl.cl_mem;
-import org.jocl.cl_platform_id;
 import org.jocl.cl_program;
-import org.jocl.cl_queue_properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibis.cashmere.constellation.Argument;
+import ibis.cashmere.constellation.ArrayArgument;
 import ibis.cashmere.constellation.Buffer;
+import ibis.cashmere.constellation.BufferArgument;
+import ibis.cashmere.constellation.ByteArrayArgument;
 import ibis.cashmere.constellation.Cashmere;
 import ibis.cashmere.constellation.DeInitLibraryFunction;
+import ibis.cashmere.constellation.DoubleArrayArgument;
+import ibis.cashmere.constellation.FloatArrayArgument;
 import ibis.cashmere.constellation.InitLibraryFunction;
+import ibis.cashmere.constellation.IntArrayArgument;
+import ibis.cashmere.constellation.PointerArgument;
 
 /**
  * Class that represents a many-core <code>Device</code>.
  */
-public class Device implements Comparable<Device> {
+public abstract class Device implements Comparable<Device> {
 
     /*
      * loggers
      */
-    private static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device");
+    protected static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device");
     private static final Logger memlogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device/memory");
-    private static final Logger eventLogger = Event.logger;
 
     /*
      * Administration for the Device in relation to OpenCL
@@ -85,17 +76,17 @@ public class Device implements Comparable<Device> {
     private cl_device_id deviceID;
 
     // these variables are also accessed by Launch
-    cl_context context;
+    protected Context context;
     cl_command_queue writeQueue;
     cl_command_queue executeQueue;
     cl_command_queue readQueue;
     private int nrKernelLaunches;
 
     // A static variable that keeps track of all the devices in the compute node
-    private static final Map<cl_context, Device> devices = new HashMap<cl_context, Device>();
+    private static final Map<Context, Device> devices = new HashMap<Context, Device>();
 
     // the information for this device
-    private DeviceInfo info;
+    protected final DeviceInfo info;
 
     // the programs compiled for this Device
     private Map<String, cl_program> kernels;
@@ -116,7 +107,7 @@ public class Device implements Comparable<Device> {
      * Arguments and their relation to events
      */
 
-    // mappings from arguments to a kernel to Argument and cl_events objects, etc
+    // mappings from arguments to a kernel to Argument and DeviceEvents objects, etc
     private Map<float[], FloatArrayArgument> floatArrayArguments;
     private Map<double[], DoubleArrayArgument> doubleArrayArguments;
     private Map<int[], IntArrayArgument> intArrayArguments;
@@ -124,28 +115,28 @@ public class Device implements Comparable<Device> {
     private Map<Buffer, BufferArgument> bufferArguments;
     private Map<Pointer, PointerArgument> pointerArguments;
 
-    private Map<float[], cl_event> writeEventsFloats;
-    private Map<double[], cl_event> writeEventsDoubles;
-    private Map<int[], cl_event> writeEventsInts;
-    private Map<byte[], cl_event> writeEventsBytes;
-    private Map<Buffer, cl_event> writeEventsBuffers;
-    private Map<Pointer, cl_event> writeEventsPointers;
+    private Map<float[], DeviceEvent> writeEventsFloats;
+    private Map<double[], DeviceEvent> writeEventsDoubles;
+    private Map<int[], DeviceEvent> writeEventsInts;
+    private Map<byte[], DeviceEvent> writeEventsBytes;
+    private Map<Buffer, DeviceEvent> writeEventsBuffers;
+    private Map<Pointer, DeviceEvent> writeEventsPointers;
 
-    private Map<cl_event, float[]> writeEventsFloatsInversed;
-    private Map<cl_event, double[]> writeEventsDoublesInversed;
-    private Map<cl_event, int[]> writeEventsIntsInversed;
-    private Map<cl_event, byte[]> writeEventsBytesInversed;
-    private Map<cl_event, Buffer> writeEventsBuffersInversed;
-    private Map<cl_event, Pointer> writeEventsPointersInversed;
+    private Map<DeviceEvent, float[]> writeEventsFloatsInversed;
+    private Map<DeviceEvent, double[]> writeEventsDoublesInversed;
+    private Map<DeviceEvent, int[]> writeEventsIntsInversed;
+    private Map<DeviceEvent, byte[]> writeEventsBytesInversed;
+    private Map<DeviceEvent, Buffer> writeEventsBuffersInversed;
+    private Map<DeviceEvent, Pointer> writeEventsPointersInversed;
 
-    private Map<Buffer, ArrayList<cl_event>> executeEventsBuffers;
-    private Map<Pointer, ArrayList<cl_event>> executeEventsPointers;
-    private Map<float[], ArrayList<cl_event>> executeEventsFloats;
-    private Map<double[], ArrayList<cl_event>> executeEventsDoubles;
-    private Map<int[], ArrayList<cl_event>> executeEventsInts;
-    private Map<byte[], ArrayList<cl_event>> executeEventsBytes;
+    private Map<Buffer, ArrayList<DeviceEvent>> executeEventsBuffers;
+    private Map<Pointer, ArrayList<DeviceEvent>> executeEventsPointers;
+    private Map<float[], ArrayList<DeviceEvent>> executeEventsFloats;
+    private Map<double[], ArrayList<DeviceEvent>> executeEventsDoubles;
+    private Map<int[], ArrayList<DeviceEvent>> executeEventsInts;
+    private Map<byte[], ArrayList<DeviceEvent>> executeEventsBytes;
 
-    private Map<String, ArrayList<cl_event>> readBufferEventsMap;
+    private Map<String, ArrayList<DeviceEvent>> readBufferEventsMap;
 
     /*
      * Variables for debugging/logging
@@ -155,29 +146,13 @@ public class Device implements Comparable<Device> {
     /*
      * The constructor
      */
-    public Device(cl_device_id device, cl_platform_id platform, Cashmere cashmere) {
+    public Device(Cashmere cashmere, DeviceInfo info) {
         this.cashmere = cashmere;
-        this.deviceID = device;
 
-        // initialize the context properties
-        cl_context_properties contextProperties = new cl_context_properties();
-        contextProperties.addProperty(CL_CONTEXT_PLATFORM, platform);
-
-        cl_queue_properties queueProperties = new cl_queue_properties();
-        queueProperties.addProperty(CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE);
-
-        // create a context for the device
-        this.context = clCreateContext(contextProperties, 1, new cl_device_id[] { device }, null, null, null);
-        this.writeQueue = clCreateCommandQueueWithProperties(context, device, queueProperties, null);
-        this.executeQueue = clCreateCommandQueueWithProperties(context, device, queueProperties, null);
-        this.readQueue = clCreateCommandQueueWithProperties(context, device, queueProperties, null);
-
-        devices.put(context, this);
-
-        this.info = getDeviceInfo(device);
+        this.info = info;
         measureTimeOffset();
 
-        readBufferEventsMap = new HashMap<String, ArrayList<cl_event>>();
+        readBufferEventsMap = new HashMap<String, ArrayList<DeviceEvent>>();
 
         this.kernels = new HashMap<String, cl_program>();
 
@@ -188,26 +163,26 @@ public class Device implements Comparable<Device> {
         this.intArrayArguments = new IdentityHashMap<int[], IntArrayArgument>();
         this.byteArrayArguments = new IdentityHashMap<byte[], ByteArrayArgument>();
 
-        this.writeEventsBuffers = new IdentityHashMap<Buffer, cl_event>();
-        this.writeEventsPointers = new IdentityHashMap<Pointer, cl_event>();
-        this.writeEventsFloats = new IdentityHashMap<float[], cl_event>();
-        this.writeEventsDoubles = new IdentityHashMap<double[], cl_event>();
-        this.writeEventsInts = new IdentityHashMap<int[], cl_event>();
-        this.writeEventsBytes = new IdentityHashMap<byte[], cl_event>();
+        this.writeEventsBuffers = new IdentityHashMap<Buffer, DeviceEvent>();
+        this.writeEventsPointers = new IdentityHashMap<Pointer, DeviceEvent>();
+        this.writeEventsFloats = new IdentityHashMap<float[], DeviceEvent>();
+        this.writeEventsDoubles = new IdentityHashMap<double[], DeviceEvent>();
+        this.writeEventsInts = new IdentityHashMap<int[], DeviceEvent>();
+        this.writeEventsBytes = new IdentityHashMap<byte[], DeviceEvent>();
 
-        this.writeEventsBuffersInversed = new IdentityHashMap<cl_event, Buffer>();
-        this.writeEventsPointersInversed = new IdentityHashMap<cl_event, Pointer>();
-        this.writeEventsFloatsInversed = new IdentityHashMap<cl_event, float[]>();
-        this.writeEventsDoublesInversed = new IdentityHashMap<cl_event, double[]>();
-        this.writeEventsIntsInversed = new IdentityHashMap<cl_event, int[]>();
-        this.writeEventsBytesInversed = new IdentityHashMap<cl_event, byte[]>();
+        this.writeEventsBuffersInversed = new IdentityHashMap<DeviceEvent, Buffer>();
+        this.writeEventsPointersInversed = new IdentityHashMap<DeviceEvent, Pointer>();
+        this.writeEventsFloatsInversed = new IdentityHashMap<DeviceEvent, float[]>();
+        this.writeEventsDoublesInversed = new IdentityHashMap<DeviceEvent, double[]>();
+        this.writeEventsIntsInversed = new IdentityHashMap<DeviceEvent, int[]>();
+        this.writeEventsBytesInversed = new IdentityHashMap<DeviceEvent, byte[]>();
 
-        this.executeEventsBuffers = new IdentityHashMap<Buffer, ArrayList<cl_event>>();
-        this.executeEventsPointers = new IdentityHashMap<Pointer, ArrayList<cl_event>>();
-        this.executeEventsFloats = new IdentityHashMap<float[], ArrayList<cl_event>>();
-        this.executeEventsDoubles = new IdentityHashMap<double[], ArrayList<cl_event>>();
-        this.executeEventsInts = new IdentityHashMap<int[], ArrayList<cl_event>>();
-        this.executeEventsBytes = new IdentityHashMap<byte[], ArrayList<cl_event>>();
+        this.executeEventsBuffers = new IdentityHashMap<Buffer, ArrayList<DeviceEvent>>();
+        this.executeEventsPointers = new IdentityHashMap<Pointer, ArrayList<DeviceEvent>>();
+        this.executeEventsFloats = new IdentityHashMap<float[], ArrayList<DeviceEvent>>();
+        this.executeEventsDoubles = new IdentityHashMap<double[], ArrayList<DeviceEvent>>();
+        this.executeEventsInts = new IdentityHashMap<int[], ArrayList<DeviceEvent>>();
+        this.executeEventsBytes = new IdentityHashMap<byte[], ArrayList<DeviceEvent>>();
 
         this.memoryReserved = 0;
     }
@@ -215,6 +190,12 @@ public class Device implements Comparable<Device> {
     /*
      * Public methods
      */
+
+    public void setContext(Context context) {
+        this.context = context;
+        devices.put(context, this);
+
+    }
 
     /*
      * General device management
@@ -320,7 +301,7 @@ public class Device implements Comparable<Device> {
      * an clEnqueueWriteBuffer without any events to wait on. This method will
      * return an event that is registered with registerEvent() and then added to
      * writeBufferEvents. This is an ArrayList of events that is will only hold
-     * one element. This element, a cl_event is mapped to the key Buffer a in
+     * one element. This element, a DeviceEvent is mapped to the key Buffer a in
      * the writeEventsBuffers map.
      *
      * Synchronization comments.
@@ -412,7 +393,7 @@ public class Device implements Comparable<Device> {
      */
     public void copy(Buffer from, Pointer to) {
         PointerArgument a;
-        cl_event writePointerEvent = null;
+        DeviceEvent writePointerEvent = null;
         synchronized (pointerArguments) {
             a = pointerArguments.get(to);
             if (a != null) {
@@ -430,7 +411,7 @@ public class Device implements Comparable<Device> {
                 logger.debug("storing last event in Device.writeEvents<type>");
                 logger.debug("storing last event in Device.writeEventsInversed<type>");
             }
-            cl_event old_event = writeEventsPointers.remove(to);
+            DeviceEvent old_event = writeEventsPointers.remove(to);
             if (old_event != null) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("old {} associated with {}, about to clean old event", old_event, to);
@@ -560,7 +541,7 @@ public class Device implements Comparable<Device> {
      *            the memory from which is copied
      */
     public void get(Buffer to, Pointer from) {
-        performPointerGet(from, Pointer.to(to.byteBuffer), to.capacity());
+        performPointerGet(from, cashmere.getPlatform().toPointer(to.getByteBuffer()), to.capacity());
     }
 
     /**
@@ -572,7 +553,7 @@ public class Device implements Comparable<Device> {
      *            the memory from which is copied
      */
     public void get(double[] to, Pointer from) {
-        performPointerGet(from, Pointer.to(to), to.length * Sizeof.cl_double);
+        performPointerGet(from, cashmere.getPlatform().toPointer(to), to.length * Sizeof.cl_double);
     }
 
     /**
@@ -584,7 +565,7 @@ public class Device implements Comparable<Device> {
      *            the memory from which is copied
      */
     public void get(float[] to, Pointer from) {
-        performPointerGet(from, Pointer.to(to), to.length * Sizeof.cl_float);
+        performPointerGet(from, cashmere.getPlatform().toPointer(to), to.length * Sizeof.cl_float);
     }
 
     /*
@@ -693,36 +674,7 @@ public class Device implements Comparable<Device> {
         return offsetHostDevice;
     }
 
-    public void addKernel(String kernelSource) {
-        cl_program program = clCreateProgramWithSource(context, 1, new String[] { kernelSource },
-                new long[] { kernelSource.length() }, null);
-
-        clBuildProgram(program, 0, null, null, null, null);
-        // clBuildProgram(program, 0, null,
-        // "-cl-nv-verbose -cl-nv-maxrregcount=20", null, null);
-        // assuming there is only one kernel for now.
-
-        long size[] = new long[1];
-        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG, 0, null, size);
-        byte buffer[] = new byte[(int) size[0]];
-        clGetProgramBuildInfo(program, deviceID, CL_PROGRAM_BUILD_LOG, buffer.length, Pointer.to(buffer), null);
-        String log = new String(buffer, 0, buffer.length - 1).trim();
-
-        if (log.length() > 0) {
-            System.out.println(log);
-        }
-
-        cl_kernel[] kernelArray = new cl_kernel[1];
-        clCreateKernelsInProgram(program, 1, kernelArray, null);
-        cl_kernel kernel = kernelArray[0];
-
-        String nameKernel = CudaInfo.getName(kernel);
-        this.kernels.put(nameKernel, program);
-
-        // writeBinary(program, nameKernel, info.name);
-
-        logger.info("Registered kernel " + nameKernel + " on device " + info.getNickName());
-    }
+    public abstract void addKernel(String kernelSource);
 
     /*
      * Memory allocation and arguments
@@ -766,7 +718,7 @@ public class Device implements Comparable<Device> {
     /*
      * Setting/querying the state of the device
      */
-    static Device getDevice(cl_context context) {
+    public static Device getDevice(Context context) {
         return devices.get(context);
     }
 
@@ -819,80 +771,80 @@ public class Device implements Comparable<Device> {
      * Handling events
      */
 
-    public cl_event getWriteEvent(float[] a) {
+    public DeviceEvent getWriteEvent(float[] a) {
         return getWriteEventGeneric(a, writeEventsFloats);
     }
 
-    public cl_event getWriteEvent(double[] a) {
+    public DeviceEvent getWriteEvent(double[] a) {
         return getWriteEventGeneric(a, writeEventsDoubles);
     }
 
-    public cl_event getWriteEvent(int[] a) {
+    public DeviceEvent getWriteEvent(int[] a) {
         return getWriteEventGeneric(a, writeEventsInts);
     }
 
-    public cl_event getWriteEvent(byte[] a) {
+    public DeviceEvent getWriteEvent(byte[] a) {
         return getWriteEventGeneric(a, writeEventsBytes);
     }
 
-    public cl_event getWriteEvent(Buffer a) {
+    public DeviceEvent getWriteEvent(Buffer a) {
         return getWriteEventGeneric(a, writeEventsBuffers);
     }
 
-    public cl_event getWriteEvent(Pointer a) {
+    public DeviceEvent getWriteEvent(Pointer a) {
         return getWriteEventGeneric(a, writeEventsPointers);
     }
 
-    public void addExecuteEvent(float[] a, cl_event event) {
+    public void addExecuteEvent(float[] a, DeviceEvent event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsFloats));
     }
 
-    public void addExecuteEvent(double[] a, cl_event event) {
+    public void addExecuteEvent(double[] a, DeviceEvent event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsDoubles));
     }
 
-    public void addExecuteEvent(int[] a, cl_event event) {
+    public void addExecuteEvent(int[] a, DeviceEvent event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsInts));
     }
 
-    public void addExecuteEvent(byte[] a, cl_event event) {
+    public void addExecuteEvent(byte[] a, DeviceEvent event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsBytes));
     }
 
-    public void addExecuteEvent(Buffer a, cl_event event) {
+    public void addExecuteEvent(Buffer a, DeviceEvent event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsBuffers));
     }
 
-    public void addExecuteEvent(Pointer a, cl_event event) {
+    public void addExecuteEvent(Pointer a, DeviceEvent event) {
         processExecuteEvent(event, getExecuteEvents(a, executeEventsPointers));
     }
 
-    public void removeExecuteEvent(float[] a, cl_event event) {
+    public void removeExecuteEvent(float[] a, DeviceEvent event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsFloats));
     }
 
-    public void removeExecuteEvent(double[] a, cl_event event) {
+    public void removeExecuteEvent(double[] a, DeviceEvent event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsDoubles));
     }
 
-    public void removeExecuteEvent(int[] a, cl_event event) {
+    public void removeExecuteEvent(int[] a, DeviceEvent event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsInts));
     }
 
-    public void removeExecuteEvent(byte[] a, cl_event event) {
+    public void removeExecuteEvent(byte[] a, DeviceEvent event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsBytes));
     }
 
-    public void removeExecuteEvent(Buffer a, cl_event event) {
+    public void removeExecuteEvent(Buffer a, DeviceEvent event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsBuffers));
     }
 
-    public void removeExecuteEvent(Pointer a, cl_event event) {
+    public void removeExecuteEvent(Pointer a, DeviceEvent event) {
         removeExecuteEvent(event, getExecuteEvents(a, executeEventsPointers));
     }
 
-    public void cleanWriteEvents(ArrayList<cl_event> events) {
-        for (cl_event event : events) {
+    public void cleanWriteEvents(ArrayList<DeviceEvent> events) {
+        for (DeviceEvent event : events) {
             cleanWriteEvent(event, writeEventsFloats, writeEventsFloatsInversed);
             cleanWriteEvent(event, writeEventsDoubles, writeEventsDoublesInversed);
             cleanWriteEvent(event, writeEventsInts, writeEventsIntsInversed);
@@ -929,7 +881,7 @@ public class Device implements Comparable<Device> {
         float f[] = { 0.0f };
         Pointer fPointer = Pointer.to(f);
         cl_mem memObject = clCreateBuffer(context, CL_MEM_READ_WRITE, Sizeof.cl_float, null, null);
-        cl_event event = new cl_event();
+        DeviceEvent event = new DeviceEvent();
         long startHost = System.nanoTime();
         clEnqueueWriteBuffer(writeQueue, memObject, CL_TRUE, 0, Sizeof.cl_float, fPointer, 0, null, event);
         clReleaseMemObject(memObject);
@@ -949,14 +901,15 @@ public class Device implements Comparable<Device> {
      * Managing arguments/memory on the device
      */
 
-    private <K, V extends ArrayArgument> void performCopy(Map<K, V> map, Map<K, cl_event> writeEvents,
-            Map<cl_event, K> writeEventsInversed, K k, Function<ArrayList<cl_event>, V> makeNewArgument, Supplier<Integer> size) {
+    private <K, V extends ArrayArgument> void performCopy(Map<K, V> map, Map<K, DeviceEvent> writeEvents,
+            Map<DeviceEvent, K> writeEventsInversed, K k, Function<ArrayList<DeviceEvent>, V> makeNewArgument,
+            Supplier<Integer> size) {
 
         boolean madeNewArgument;
-        ArrayList<cl_event> writeBufferEvents = null;
+        ArrayList<DeviceEvent> writeBufferEvents = null;
         synchronized (map) {
             if (!map.containsKey(k)) {
-                writeBufferEvents = new ArrayList<cl_event>();
+                writeBufferEvents = new ArrayList<DeviceEvent>();
                 map.put(k, makeNewArgument.apply(writeBufferEvents));
                 madeNewArgument = true;
             } else {
@@ -982,7 +935,7 @@ public class Device implements Comparable<Device> {
                         eventLogger.debug("storing last event in Device.writeEvents<type>");
                         eventLogger.debug("storing last event in Device.writeEventsInversed<type>");
                     }
-                    cl_event event = writeBufferEvents.get(0);
+                    DeviceEvent event = writeBufferEvents.get(0);
                     writeEvents.put(k, event);
                     writeEventsInversed.put(event, k);
                 } else {
@@ -998,13 +951,13 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    private <K, V extends ArrayArgument> void performGet(K k, Map<K, V> map, Map<K, ArrayList<cl_event>> executeEvents) {
+    private <K, V extends ArrayArgument> void performGet(K k, Map<K, V> map, Map<K, ArrayList<DeviceEvent>> executeEvents) {
         V v;
         synchronized (map) {
             v = map.get(k);
         }
-        ArrayList<cl_event> execEvents = getExecuteEvents(k, executeEvents);
-        ArrayList<cl_event> readBufferEvents = getReadBufferEvents();
+        ArrayList<DeviceEvent> execEvents = getExecuteEvents(k, executeEvents);
+        ArrayList<DeviceEvent> readBufferEvents = getReadBufferEvents();
         v.scheduleReads(execEvents, readBufferEvents, false);
         releaseEvents(readBufferEvents);
         releaseEvents(execEvents);
@@ -1019,8 +972,8 @@ public class Device implements Comparable<Device> {
         synchronized (pointerArguments) {
             a = pointerArguments.get(from);
         }
-        ArrayList<cl_event> execEvents = getExecuteEvents(from, executeEventsPointers);
-        ArrayList<cl_event> readBufferEvents = getReadBufferEvents();
+        ArrayList<DeviceEvent> execEvents = getExecuteEvents(from, executeEventsPointers);
+        ArrayList<DeviceEvent> readBufferEvents = getReadBufferEvents();
         a.scheduleReads(to, size, execEvents, readBufferEvents, false);
         synchronized (executeEventsPointers) {
             executeEventsPointers.remove(from);
@@ -1029,7 +982,7 @@ public class Device implements Comparable<Device> {
         releaseEvents(execEvents);
     }
 
-    private <K, V extends ArrayArgument> int performClean(K k, Map<K, V> map, int size, Supplier<cl_event> cleanEvents) {
+    private <K, V extends ArrayArgument> int performClean(K k, Map<K, V> map, int size, Supplier<DeviceEvent> cleanEvents) {
         V v;
         synchronized (map) {
             v = map.get(k);
@@ -1068,21 +1021,21 @@ public class Device implements Comparable<Device> {
      * Handling events
      */
 
-    private void releaseEvents(ArrayList<cl_event> events) {
-        for (cl_event event : events) {
+    private void releaseEvents(ArrayList<DeviceEvent> events) {
+        for (DeviceEvent event : events) {
             Event.clean(event);
         }
         events.clear();
     }
 
-    private <K> cl_event removeEvent(K k, Map<K, ArrayList<cl_event>> executeEvents, Map<K, cl_event> writeEvents,
-            Map<cl_event, K> writeEventsInversed) {
+    private <K> DeviceEvent removeEvent(K k, Map<K, ArrayList<DeviceEvent>> executeEvents, Map<K, DeviceEvent> writeEvents,
+            Map<DeviceEvent, K> writeEventsInversed) {
 
         synchronized (executeEvents) {
             executeEvents.remove(k);
         }
         synchronized (writeEvents) {
-            cl_event event = writeEvents.remove(k);
+            DeviceEvent event = writeEvents.remove(k);
             if (event != null) {
                 K kStored = writeEventsInversed.get(event);
                 if (eventLogger.isDebugEnabled()) {
@@ -1099,35 +1052,35 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    private <K> ArrayList<cl_event> getExecuteEvents(K k, Map<K, ArrayList<cl_event>> map) {
-        ArrayList<cl_event> events;
+    private <K> ArrayList<DeviceEvent> getExecuteEvents(K k, Map<K, ArrayList<DeviceEvent>> map) {
+        ArrayList<DeviceEvent> events;
         synchronized (map) {
             events = map.get(k);
             if (events == null) {
-                events = new ArrayList<cl_event>();
+                events = new ArrayList<DeviceEvent>();
                 map.put(k, events);
             }
         }
         return events;
     }
 
-    private <K> cl_event getWriteEventGeneric(K k, Map<K, cl_event> writeEvents) {
+    private <K> DeviceEvent getWriteEventGeneric(K k, Map<K, DeviceEvent> writeEvents) {
         synchronized (writeEvents) {
             return writeEvents.get(k);
         }
     }
 
-    private synchronized ArrayList<cl_event> getReadBufferEvents() {
+    private synchronized ArrayList<DeviceEvent> getReadBufferEvents() {
         String thread = Thread.currentThread().getName();
-        ArrayList<cl_event> readBufferEvents = readBufferEventsMap.get(thread);
+        ArrayList<DeviceEvent> readBufferEvents = readBufferEventsMap.get(thread);
         if (readBufferEvents == null) {
-            readBufferEvents = new ArrayList<cl_event>();
+            readBufferEvents = new ArrayList<DeviceEvent>();
             readBufferEventsMap.put(thread, readBufferEvents);
         }
         return readBufferEvents;
     }
 
-    private void processExecuteEvent(cl_event event, ArrayList<cl_event> events) {
+    private void processExecuteEvent(DeviceEvent event, ArrayList<DeviceEvent> events) {
         synchronized (events) {
             events.add(event);
         }
@@ -1136,7 +1089,7 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    private void removeExecuteEvent(cl_event event, ArrayList<cl_event> events) {
+    private void removeExecuteEvent(DeviceEvent event, ArrayList<DeviceEvent> events) {
         synchronized (events) {
             events.remove(event);
         }
@@ -1145,11 +1098,12 @@ public class Device implements Comparable<Device> {
         }
     }
 
-    private <T> void cleanWriteEvent(cl_event event, Map<T, cl_event> writeEvents, Map<cl_event, T> writeEventsInversed) {
+    private <T> void cleanWriteEvent(DeviceEvent event, Map<T, DeviceEvent> writeEvents,
+            Map<DeviceEvent, T> writeEventsInversed) {
         synchronized (writeEvents) {
             T t = writeEventsInversed.get(event);
             if (t != null) {
-                cl_event storedEvent = writeEvents.get(t);
+                DeviceEvent storedEvent = writeEvents.get(t);
                 if (storedEvent == event) {
                     writeEvents.remove(t);
                     writeEventsInversed.remove(event);
@@ -1189,14 +1143,14 @@ public class Device implements Comparable<Device> {
         // }
     }
 
-    private <K> void showEvents(Map<K, ArrayList<cl_event>> executeEvents, String type) {
+    private <K> void showEvents(Map<K, ArrayList<DeviceEvent>> executeEvents, String type) {
         int size = executeEvents.size();
         if (size > 0) {
             eventLogger.debug("executeEvents{} has {} elements", type, size);
-            Collection<ArrayList<cl_event>> values = executeEvents.values();
-            for (ArrayList<cl_event> events : values) {
+            Collection<ArrayList<DeviceEvent>> values = executeEvents.values();
+            for (ArrayList<DeviceEvent> events : values) {
                 eventLogger.debug("  key 1:");
-                for (cl_event event : events) {
+                for (DeviceEvent event : events) {
                     eventLogger.debug("    {}", event);
                     // Event.showEvent("execute", event);
                     // can segfault if the even has been released

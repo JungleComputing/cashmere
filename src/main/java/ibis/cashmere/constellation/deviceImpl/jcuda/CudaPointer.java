@@ -2,23 +2,29 @@ package ibis.cashmere.constellation.deviceImpl.jcuda;
 
 import ibis.cashmere.constellation.deviceAPI.Pointer;
 
-public class CUPointer implements Pointer {
+public class CudaPointer implements Pointer {
 
     final jcuda.Pointer cuPointer;
 
-    public CUPointer(byte[] a) {
+    public CudaPointer(byte[] a) {
         cuPointer = jcuda.Pointer.to(a);
     }
 
-    public CUPointer(int[] a) {
+    public CudaPointer(int[] a) {
         cuPointer = jcuda.Pointer.to(a);
     }
 
-    public CUPointer(float[] a) {
+    public CudaPointer(float[] a) {
         cuPointer = jcuda.Pointer.to(a);
     }
 
-    public CUPointer(double[] a) {
+    public CudaPointer(double[] a) {
         cuPointer = jcuda.Pointer.to(a);
     }
+
+    public CudaPointer(java.nio.Buffer b) {
+        cuPointer = jcuda.Pointer.to(b);
+    }
+
+    // TODO: encapsulate CUdeviceptr
 }

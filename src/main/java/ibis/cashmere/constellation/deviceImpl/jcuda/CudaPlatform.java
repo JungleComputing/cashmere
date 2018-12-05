@@ -23,22 +23,27 @@ public class CudaPlatform implements Platform {
 
     @Override
     public Pointer toPointer(byte[] a) {
-        return new CUPointer(a);
+        return new CudaPointer(a);
     }
 
     @Override
     public Pointer toPointer(int[] a) {
-        return new CUPointer(a);
+        return new CudaPointer(a);
     }
 
     @Override
     public Pointer toPointer(float[] a) {
-        return new CUPointer(a);
+        return new CudaPointer(a);
     }
 
     @Override
     public Pointer toPointer(double[] a) {
-        return new CUPointer(a);
+        return new CudaPointer(a);
+    }
+
+    @Override
+    public Pointer toPointer(java.nio.Buffer b) {
+        return new CudaPointer(b);
     }
 
 }

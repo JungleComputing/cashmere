@@ -18,19 +18,21 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import org.jocl.Pointer;
 import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
 import org.jocl.cl_event;
 
-class PointerArgument extends ArrayArgument {
+import ibis.cashmere.constellation.deviceAPI.Context;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.deviceAPI.Pointer;
 
-    PointerArgument(cl_context context, cl_command_queue readQueue) {
+public class PointerArgument extends ArrayArgument {
+
+    public PointerArgument(Context context, cl_command_queue readQueue) {
         super(Argument.Direction.INOUT, context, readQueue);
     }
 
     // This is not an override, but an alternative.
-    void scheduleReads(Pointer to, long size, ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents,
+    void scheduleReads(Pointer to, long size, ArrayList<DeviceEvent> waitListEvents, ArrayList<DeviceEvent> readBufferEvents,
             boolean async) {
         cl_event event = readBuffer(context, readQueue, waitListEvents, size, to, async);
         if (event != null) {

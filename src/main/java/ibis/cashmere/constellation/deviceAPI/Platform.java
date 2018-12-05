@@ -1,5 +1,6 @@
 package ibis.cashmere.constellation.deviceAPI;
 
+import java.nio.Buffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -32,6 +33,8 @@ public interface Platform {
     public String getSuffix();
 
     public Pointer toPointer(byte[] a);
+
+    public Pointer toPointer(Buffer b);
 
     public Pointer toPointer(int[] a);
 

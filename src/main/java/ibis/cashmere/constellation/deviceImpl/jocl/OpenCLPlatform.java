@@ -45,22 +45,27 @@ public class OpenCLPlatform implements Platform {
 
     @Override
     public Pointer toPointer(byte[] a) {
-        return new CLPointer(a);
+        return new OpenCLPointer(a);
     }
 
     @Override
     public Pointer toPointer(int[] a) {
-        return new CLPointer(a);
+        return new OpenCLPointer(a);
     }
 
     @Override
     public Pointer toPointer(float[] a) {
-        return new CLPointer(a);
+        return new OpenCLPointer(a);
     }
 
     @Override
     public Pointer toPointer(double[] a) {
-        return new CLPointer(a);
+        return new OpenCLPointer(a);
+    }
+
+    @Override
+    public Pointer toPointer(java.nio.Buffer b) {
+        return new OpenCLPointer(b);
     }
 
     public String getSuffix() {
@@ -141,7 +146,7 @@ public class OpenCLPlatform implements Platform {
         cl_device_id[] device_ids = getDeviceIDs(platform);
 
         for (cl_device_id device : device_ids) {
-            Device d = new Device(device, platform, cashmere);
+            Device d = new OpenCLDevice(device, platform, cashmere);
             if (!d.getName().equals("unknown")) {
                 devices.add(d);
             }

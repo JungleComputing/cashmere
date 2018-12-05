@@ -18,22 +18,23 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import org.jocl.Pointer;
 import org.jocl.Sizeof;
 import org.jocl.cl_command_queue;
 import org.jocl.cl_context;
 import org.jocl.cl_event;
 
-class FloatArrayArgument extends ArrayArgument {
+import ibis.cashmere.constellation.deviceAPI.Pointer;
+
+public class FloatArrayArgument extends ArrayArgument {
 
     protected float[] fs;
 
-    FloatArrayArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
+    public FloatArrayArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
             ArrayList<cl_event> writeBufferEvents, float[] fs, Direction d) {
         super(d, context, readQueue);
 
         this.fs = fs;
-        Pointer fsPointer = Pointer.to(fs);
+        Pointer fsPointer = Cashmere.cashmere.getPlatform().toPointer(fs);
 
         if (d == Direction.IN || d == Direction.INOUT) {
             cl_event event = writeBuffer(context, writeQueue, fs.length * Sizeof.cl_float, fsPointer);
@@ -47,7 +48,8 @@ class FloatArrayArgument extends ArrayArgument {
     void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
 
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, fs.length * Sizeof.cl_float, Pointer.to(fs), async);
+            cl_event event = readBuffer(context, readQueue, waitListEvents, fs.length * Sizeof.cl_float,
+                    Cashmere.cashmere.getPlatform().toPointer(fs), async);
             if (event != null) {
                 readBufferEvents.add(event);
             }

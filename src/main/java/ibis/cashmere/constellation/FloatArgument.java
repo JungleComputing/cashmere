@@ -16,9 +16,9 @@
 
 package ibis.cashmere.constellation;
 
-class FloatArgument extends Argument {
+public class FloatArgument extends Argument {
 
-    FloatArgument(float f, Direction d) {
-        super(Cashmere.cashmere.platform.toPointer(new float[] { f }), d, false);
+    public FloatArgument(float f, Direction d) {
+        super(Cashmere.cashmere.getPlatform().toPointer(new float[] { f }), d, false);
     }
 }

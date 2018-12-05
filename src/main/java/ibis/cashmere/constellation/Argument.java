@@ -29,7 +29,6 @@ import static org.jocl.CL.clWaitForEvents;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.jocl.Pointer;
 import org.jocl.cl_command_queue;
 import org.jocl.cl_context;
 import org.jocl.cl_event;
@@ -37,7 +36,10 @@ import org.jocl.cl_mem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.deviceAPI.Context;
 import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.deviceAPI.Pointer;
 import ibis.util.ThreadPool;
 
 /**
@@ -82,11 +84,7 @@ public class Argument {
      */
     private static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation");
 
-    private static final Logger eventLogger = Event.logger;
-
     private static final Logger memLogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Argument/memory");
-
-    private static cl_event null_event = new cl_event(); // to test events against.
 
     // keeping track of the amount allocated
     private static long allocatedBytes = 0;
@@ -111,7 +109,7 @@ public class Argument {
      * Package methods
      */
 
-    void scheduleReads(ArrayList<cl_event> a, ArrayList<cl_event> b, boolean async) {
+    void scheduleReads(ArrayList<DeviceEvent> a, ArrayList<DeviceEvent> b, boolean async) {
     }
 
     void clean() {
@@ -140,7 +138,7 @@ public class Argument {
         return pointer;
     }
 
-    void createBuffer(cl_context context, long size, Pointer hostPtr) {
+    void createBuffer(Context context, long size, Pointer hostPtr) {
         // long flags = direction == Direction.IN ? CL_MEM_READ_ONLY
         // : direction == Direction.INOUT ? CL_MEM_READ_WRITE
         // : CL_MEM_WRITE_ONLY;
@@ -221,28 +219,30 @@ public class Argument {
      * Methods for subclasses
      */
 
-    protected cl_event writeBuffer(cl_context context, cl_command_queue q, long size, Pointer hostPtr) {
-        createBuffer(context, size, hostPtr);
+    protected cl_event writeBuffer(cl_command_queue q, long size, Pointer hostPtr) {
+        createBuffer(size, hostPtr);
 
-        return writeBufferNoCreateBuffer(context, q, null, size, hostPtr);
+        return writeBufferNoCreateBuffer(q, null, size, hostPtr);
     }
 
-    protected cl_event readBuffer(cl_context context, cl_command_queue q, ArrayList<cl_event> waitEvents, long size,
-            Pointer hostPtr, boolean asynch) {
+    protected cl_event readBuffer(cl_command_queue q, ArrayList<DeviceEvent> waitEvents, long size, Pointer hostPtr,
+            boolean asynch) {
 
         if (eventLogger.isDebugEnabled()) {
             eventLogger.debug("Doing a readbuffer");
         }
 
         readScheduled = true;
-        cl_event event = new cl_event();
-        cl_event[] events = null;
+        cl_event = new cl_event();
+        DeviceEvent[] events = null;
         int nEvents = 0;
         if (waitEvents != null) {
             nEvents = waitEvents.size();
-            events = new cl_event[nEvents];
+            events = new DeviceEvent[nEvents];
             events = waitEvents.toArray(events);
-            Event.retainEvents(events);
+            for (DeviceEvent e : events) {
+                e.retain();
+            }
             if (logger.isDebugEnabled()) {
                 logger.debug("readBuffer: events to wait for: " + Arrays.toString(events));
             }

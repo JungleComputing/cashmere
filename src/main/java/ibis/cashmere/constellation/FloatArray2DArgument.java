@@ -22,11 +22,11 @@ import org.jocl.cl_command_queue;
 import org.jocl.cl_context;
 import org.jocl.cl_event;
 
-class FloatArray2DArgument extends FloatArrayArgument {
+public class FloatArray2DArgument extends FloatArrayArgument {
 
     private float[][] fs2D;
 
-    FloatArray2DArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
+    public FloatArray2DArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
             ArrayList<cl_event> writeBufferEvents, float[][] fs, Direction d) {
         super(context, writeQueue, readQueue, writeBufferEvents, new float[fs.length * fs[0].length], d);
         this.fs2D = fs;

@@ -68,7 +68,7 @@ public class Cashmere {
 
     private static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Cashmere");
 
-    private static Cashmere cashmere = null;
+    static Cashmere cashmere = null;
 
     /*
      * Members for constellation
@@ -99,7 +99,7 @@ public class Cashmere {
 
     private final Map<String, DeInitLibraryFunction> deInitLibraryFuncs = new HashMap<String, DeInitLibraryFunction>();
 
-    Platform platform;
+    private Platform platform;
 
     /*
      * The public interface to Cashmere
@@ -484,7 +484,7 @@ public class Cashmere {
         if (e != null) {
             constellation = ConstellationFactory.createConstellation(e);
         }
-        platform = Platform.initializePlatform(props, devices, this);
+        setPlatform(Platform.initializePlatform(props, devices, this));
         initializeBuffers(nrBuffers, sizeBuffer);
         initializeKernels(defines);
     }
@@ -526,7 +526,7 @@ public class Cashmere {
             ZipInputStream zip = new ZipInputStream(jar.openStream());
             ZipEntry ze = null;
             while ((ze = zip.getNextEntry()) != null) {
-                if (ze.getName().endsWith(platform.getSuffix())) {
+                if (ze.getName().endsWith(getPlatform().getSuffix())) {
                     BufferedInputStream bis = new BufferedInputStream(zip);
                     byte[] bytes = new byte[(int) ze.getSize()];
                     int offset = 0;
@@ -780,6 +780,14 @@ public class Cashmere {
 
     private Timer createTimer() {
         return getConstellation().getTimer();
+    }
+
+    public Platform getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(Platform platform) {
+        this.platform = platform;
     }
 
     /*
