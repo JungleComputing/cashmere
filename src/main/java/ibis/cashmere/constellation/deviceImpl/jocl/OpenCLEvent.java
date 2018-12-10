@@ -1,7 +1,10 @@
 package ibis.cashmere.constellation.deviceImpl.jocl;
 
 import static org.jocl.CL.CL_EVENT_REFERENCE_COUNT;
+import static org.jocl.CL.CL_PROFILING_COMMAND_END;
+import static org.jocl.CL.CL_PROFILING_COMMAND_START;
 import static org.jocl.CL.clGetEventInfo;
+import static org.jocl.CL.clGetEventProfilingInfo;
 import static org.jocl.CL.clReleaseEvent;
 import static org.jocl.CL.clRetainEvent;
 
@@ -28,11 +31,14 @@ public class OpenCLEvent implements DeviceEvent {
 
     @Override
     public long getTime(TimeType tp) {
-        // TODO Auto-generated method stub
-        return 0;
+        long[] value = new long[1];
+        int command = tp == TimeType.TIME_START ? CL_PROFILING_COMMAND_START : CL_PROFILING_COMMAND_END;
+        clGetEventProfilingInfo(event, command, Sizeof.cl_ulong, Pointer.to(value), null);
+        return value[0];
     }
 
-    public void showEvent(String type) {
+    @Override
+    public void show(String type) {
         if (type == null) {
             type = "unknown";
         }
@@ -41,6 +47,7 @@ public class OpenCLEvent implements DeviceEvent {
         logger.debug(String.format("%s event %s with refcount: %d", type, event, result[0]));
     }
 
+    @Override
     public void retain() {
         if (logger.isDebugEnabled()) {
             logger.debug("about to do a clRetainEvent on {}", event);
@@ -49,6 +56,7 @@ public class OpenCLEvent implements DeviceEvent {
         clRetainEvent(event);
     }
 
+    @Override
     public void clean() {
         int nrReferences = 0;
         if (logger.isDebugEnabled()) {
@@ -79,5 +87,9 @@ public class OpenCLEvent implements DeviceEvent {
     @Override
     public int hashCode() {
         return event.hashCode();
+    }
+
+    cl_event getCLEvent() {
+        return event;
     }
 }

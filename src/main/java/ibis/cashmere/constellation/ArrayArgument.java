@@ -16,24 +16,24 @@
 
 package ibis.cashmere.constellation;
 
-import org.jocl.cl_command_queue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.Context;
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.deviceAPI.Device;
 
 public class ArrayArgument extends Argument {
 
-    protected Context context;
-    protected cl_command_queue readQueue;
+    protected CommandStream readQueue;
     private int referenceCount;
+    protected final Device device;
 
     private static final Logger memlogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device/memory");
 
-    protected ArrayArgument(Direction d, Context context, cl_command_queue readQueue) {
+    protected ArrayArgument(Device device, Direction d, CommandStream readQueue) {
         super(d);
-        this.context = context;
         this.readQueue = readQueue;
+        this.device = device;
 
         this.referenceCount = 1;
     }
@@ -60,7 +60,7 @@ public class ArrayArgument extends Argument {
         return referenceCount;
     }
 
-    protected void incRefCount() {
+    public void incRefCount() {
         referenceCount++;
         if (memlogger.isDebugEnabled()) {
             memlogger.debug("Reference count for {}: {}", this, referenceCount);

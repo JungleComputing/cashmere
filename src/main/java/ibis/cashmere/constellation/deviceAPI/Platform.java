@@ -11,21 +11,29 @@ import ibis.cashmere.constellation.deviceImpl.jocl.OpenCLPlatform;
 
 public interface Platform {
 
+    // TODO: add API for sizes?
+    public static final int INT_SIZE = 4;
+    public static final int FLOAT_SIZE = 4;
+    public static final int DOUBLE_SIZE = 8;
+    public static final int MEM_SIZE = 8;
+
     public void initializePlatform(Map<String, List<Device>> devices, Cashmere cashmere);
 
     public static Platform initializePlatform(Properties p, Map<String, List<Device>> devices, Cashmere cashmere) {
         String platform = p.getProperty("cashmere.platform", "OpenCL");
+        Platform platformImpl = null;
+
         if (platform.equals("OpenCL")) {
             // We may have to do this part with introspection in the future ...
-            Platform platformImpl = new OpenCLPlatform();
-            platformImpl.initializePlatform(devices, cashmere);
-            return platformImpl;
+            platformImpl = new OpenCLPlatform();
         }
         if (platform.equals("Cuda")) {
-            Platform platformImpl = new CudaPlatform();
+            platformImpl = new CudaPlatform();
+        }
+
+        if (platformImpl != null) {
             platformImpl.initializePlatform(devices, cashmere);
             return platformImpl;
-
         }
         return null;
     }

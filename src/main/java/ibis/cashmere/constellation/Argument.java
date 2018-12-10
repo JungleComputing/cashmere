@@ -17,30 +17,17 @@
 package ibis.cashmere.constellation;
 
 import static ibis.constellation.util.MemorySizes.toStringBytes;
-import static org.jocl.CL.CL_FALSE;
-import static org.jocl.CL.CL_MEM_READ_WRITE;
-import static org.jocl.CL.CL_TRUE;
-import static org.jocl.CL.clCreateBuffer;
-import static org.jocl.CL.clEnqueueReadBuffer;
-import static org.jocl.CL.clEnqueueWriteBuffer;
-import static org.jocl.CL.clReleaseMemObject;
-import static org.jocl.CL.clWaitForEvents;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_event;
-import org.jocl.cl_mem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.Context;
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
 import ibis.cashmere.constellation.deviceAPI.Device;
 import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
 import ibis.cashmere.constellation.deviceAPI.Pointer;
-import ibis.util.ThreadPool;
 
 /**
  * A class used for indicating directions of arguments to kernels.
@@ -76,15 +63,14 @@ public class Argument {
      */
     private Pointer pointer;
     protected Direction direction;
-    private cl_mem memObject;
     private boolean readScheduled;
 
     /*
      * private members
      */
     private static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation");
-
     private static final Logger memLogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Argument/memory");
+    private static final Logger eventLogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Event");
 
     // keeping track of the amount allocated
     private static long allocatedBytes = 0;
@@ -109,48 +95,27 @@ public class Argument {
      * Package methods
      */
 
-    void scheduleReads(ArrayList<DeviceEvent> a, ArrayList<DeviceEvent> b, boolean async) {
+    public void scheduleReads(ArrayList<DeviceEvent> a, ArrayList<DeviceEvent> b, boolean async) {
     }
 
     void clean() {
-        if (memObject != null) {
-            if (logger.isInfoEnabled()) {
-                logger.info("Releasing " + memObject);
-            }
-            if (memLogger.isDebugEnabled()) {
-                memLogger.debug("about to release");
-            }
-            clReleaseMemObject(memObject);
-            if (memLogger.isDebugEnabled()) {
-                memLogger.debug("released");
-            }
-            if (memLogger.isDebugEnabled()) {
+        if (pointer != null) {
+            if (pointer.clean()) {
                 synchronized (Argument.class) {
                     allocatedBytes -= size;
                 }
                 memLogger.debug(String.format("deallocated: %4s, total: %s", toStringBytes(size), toStringBytes(allocatedBytes)));
             }
-            memObject = null;
         }
     }
 
-    Pointer getPointer() {
+    public Pointer getPointer() {
         return pointer;
     }
 
-    void createBuffer(Context context, long size, Pointer hostPtr) {
-        // long flags = direction == Direction.IN ? CL_MEM_READ_ONLY
-        // : direction == Direction.INOUT ? CL_MEM_READ_WRITE
-        // : CL_MEM_WRITE_ONLY;
-        // TODO: change the API: There is a mismatch between our APIs.
-        // Argument.Direction.IN/OUT in our API is about copying before/after,
-        // while READ/WRITE is about whether the buffers are read/written,
-        // which are two separate things. Quick fix for now: make everything
-        // READ_WRITE.
-        long flags = CL_MEM_READ_WRITE;// | CL_MEM_HOST_NO_ACCESS;
+    public void createBuffer(Device device, long size, Pointer hostPtr) {
 
-        Device device = Device.getDevice(context);
-        memObject = device.withAllocationError(() -> clCreateBuffer(context, flags, size, null, null));
+        pointer = device.createBuffer(direction, size);
         this.size = size;
         if (memLogger.isDebugEnabled()) {
             synchronized (Argument.class) {
@@ -159,56 +124,18 @@ public class Argument {
             memLogger.debug(String.format("allocated: %6s, total: %s", toStringBytes(size), toStringBytes(allocatedBytes)));
         }
 
-        if (memObject == null) {
+        if (pointer == null) {
             throw new Error("Could not allocate device memory");
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Done allocating memory of size " + size + ", result = " + memObject);
+            logger.debug("Done allocating memory of size " + size + ", result = " + pointer);
         }
-        pointer = Pointer.to(memObject);
     }
 
-    cl_event writeBufferNoCreateBuffer(cl_context context, cl_command_queue q, final cl_event[] waitEvents, long size,
+    public DeviceEvent writeBufferNoCreateBuffer(Device device, CommandStream q, final DeviceEvent[] waitEvents, long size,
             Pointer hostPtr) {
 
-        cl_event event = new cl_event();
-        int nEvents = 0;
-        if (waitEvents != null) {
-            nEvents = waitEvents.length;
-        }
-        if (nEvents > 0) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("WriteBuffer: events to wait for: " + Arrays.toString(waitEvents));
-            }
-            if (logger.isTraceEnabled()) {
-                ThreadPool.createNew(new Thread() {
-                    @Override
-                    public void run() {
-                        clWaitForEvents(waitEvents.length, waitEvents);
-                        logger.trace("Test wait successful: " + Arrays.toString(waitEvents));
-                    }
-                }, "test event waiter");
-            }
-        }
-
-        Device device = Device.getDevice(context);
-
-        Event.retainEvents(waitEvents);
-
-        final int nEventsFinal = nEvents;
-        device.withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, CL_FALSE, 0, size, hostPtr, nEventsFinal,
-                (nEventsFinal == 0) ? null : waitEvents, event));
-        if (eventLogger.isDebugEnabled()) {
-            Event.nrEvents.incrementAndGet();
-            eventLogger.debug("performing a writeBuffer with new event: {}, depends on {} (retained)", event, waitEvents);
-        }
-
-        if (logger.isInfoEnabled()) {
-            logger.info("Done enqueue write event " + event);
-        }
-        // Event.showEvents(waitEvents);
-        // Event.showEvent(event);
-        return event;
+        return device.writeNoCreateBuffer(q, waitEvents, size, hostPtr, pointer);
     }
 
     boolean readScheduled() {
@@ -219,27 +146,23 @@ public class Argument {
      * Methods for subclasses
      */
 
-    protected cl_event writeBuffer(cl_command_queue q, long size, Pointer hostPtr) {
-        createBuffer(size, hostPtr);
+    protected DeviceEvent writeBuffer(Device device, CommandStream q, long size, Pointer hostPtr) {
+        createBuffer(device, size, hostPtr);
 
-        return writeBufferNoCreateBuffer(q, null, size, hostPtr);
+        return writeBufferNoCreateBuffer(device, q, null, size, hostPtr);
     }
 
-    protected cl_event readBuffer(cl_command_queue q, ArrayList<DeviceEvent> waitEvents, long size, Pointer hostPtr,
-            boolean asynch) {
+    protected DeviceEvent readBuffer(Device device, CommandStream q, ArrayList<DeviceEvent> waitEvents, long size,
+            Pointer hostPtr, boolean asynch) {
 
         if (eventLogger.isDebugEnabled()) {
             eventLogger.debug("Doing a readbuffer");
         }
 
         readScheduled = true;
-        cl_event = new cl_event();
-        DeviceEvent[] events = null;
-        int nEvents = 0;
-        if (waitEvents != null) {
-            nEvents = waitEvents.size();
-            events = new DeviceEvent[nEvents];
-            events = waitEvents.toArray(events);
+        final DeviceEvent[] events = waitEvents != null ? waitEvents.toArray(new DeviceEvent[waitEvents.size()]) : null;
+        final int nEvents = waitEvents != null ? waitEvents.size() : 0;
+        if (nEvents != 0) {
             for (DeviceEvent e : events) {
                 e.retain();
             }
@@ -248,21 +171,6 @@ public class Argument {
             }
         }
 
-        Device device = Device.getDevice(context);
-        final int nEventsFinal = nEvents;
-        final cl_event[] eventsFinal = events;
-        device.withAllocationError(() -> clEnqueueReadBuffer(q, memObject, asynch ? CL_FALSE : CL_TRUE, 0, size, hostPtr,
-                nEventsFinal, (nEventsFinal == 0) ? null : eventsFinal, event));
-        if (eventLogger.isDebugEnabled()) {
-            Event.nrEvents.incrementAndGet();
-            eventLogger.debug("performing a readBuffer with new event: {}, depends on {} (retained)", event, eventsFinal);
-        }
-        if (event.equals(null_event)) {
-            // No initialized event returned.
-            return null;
-        }
-        // Event.showEvents(waitEvents);
-        // Event.showEvent(event);
-        return event;
+        return device.enqueueReadBuffer(q, asynch, events, size, hostPtr, pointer);
     }
 }

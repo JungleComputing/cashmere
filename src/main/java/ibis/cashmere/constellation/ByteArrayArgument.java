@@ -18,38 +18,36 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_event;
-
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
 import ibis.cashmere.constellation.deviceAPI.Pointer;
 
 public class ByteArrayArgument extends ArrayArgument {
 
     private byte[] bs;
 
-    public ByteArrayArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
-            ArrayList<cl_event> writeBufferEvents, byte[] bs, Direction d) {
-        super(d, context, readQueue);
+    public ByteArrayArgument(Device device, CommandStream writeQueue, CommandStream readQueue,
+            ArrayList<DeviceEvent> writeBufferEvents, byte[] bs, Direction d) {
+        super(device, d, readQueue);
 
         this.bs = bs;
         transform();
         Pointer bsPointer = Cashmere.cashmere.getPlatform().toPointer(bs);
 
         if (d == Direction.IN || d == Direction.INOUT) {
-            cl_event event = writeBuffer(context, writeQueue, bs.length * Sizeof.cl_char, bsPointer);
+            DeviceEvent event = writeBuffer(device, writeQueue, bs.length, bsPointer);
             writeBufferEvents.add(event);
         } else {
-            createBuffer(context, bs.length * Sizeof.cl_char, bsPointer);
+            createBuffer(device, bs.length, bsPointer);
         }
     }
 
     @Override
-    void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
+    public void scheduleReads(ArrayList<DeviceEvent> waitListEvents, ArrayList<DeviceEvent> readBufferEvents, boolean async) {
 
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, bs.length * Sizeof.cl_char,
+            DeviceEvent event = readBuffer(device, readQueue, waitListEvents, bs.length,
                     Cashmere.cashmere.getPlatform().toPointer(bs), async);
             if (event != null) {
                 readBufferEvents.add(event);

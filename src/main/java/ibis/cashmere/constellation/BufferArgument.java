@@ -18,28 +18,27 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_event;
-
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
 import ibis.cashmere.constellation.deviceAPI.Pointer;
 
 public class BufferArgument extends ArrayArgument {
 
     private Buffer buffer;
 
-    public BufferArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
-            ArrayList<cl_event> writeBufferEvents, Buffer b, Direction d) {
-        super(d, context, readQueue);
+    public BufferArgument(Device device, CommandStream writeQueue, CommandStream readQueue,
+            ArrayList<DeviceEvent> writeBufferEvents, Buffer b, Direction d) {
+        super(device, d, readQueue);
 
         this.buffer = b;
         Pointer bufferPointer = Cashmere.cashmere.getPlatform().toPointer(buffer.byteBuffer);
 
         if (d == Direction.IN || d == Direction.INOUT) {
-            cl_event event = writeBuffer(context, writeQueue, buffer.capacity(), bufferPointer);
+            DeviceEvent event = writeBuffer(device, writeQueue, buffer.capacity(), bufferPointer);
             writeBufferEvents.add(event);
         } else {
-            createBuffer(context, buffer.capacity(), bufferPointer);
+            createBuffer(device, buffer.capacity(), bufferPointer);
         }
     }
 
@@ -48,10 +47,10 @@ public class BufferArgument extends ArrayArgument {
     }
 
     @Override
-    void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
+    public void scheduleReads(ArrayList<DeviceEvent> waitListEvents, ArrayList<DeviceEvent> readBufferEvents, boolean async) {
 
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, buffer.capacity(),
+            DeviceEvent event = readBuffer(device, readQueue, waitListEvents, buffer.capacity(),
                     Cashmere.cashmere.getPlatform().toPointer(buffer.byteBuffer), async);
             if (event != null) {
                 readBufferEvents.add(event);

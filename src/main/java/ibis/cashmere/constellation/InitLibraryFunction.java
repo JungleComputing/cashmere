@@ -16,26 +16,22 @@
 
 package ibis.cashmere.constellation;
 
-import org.jocl.CLException;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.deviceAPI.Device;
 
 /**
- * Represents a method to initialize an OpenCL library. The OpenCL library can be initialized using the supplied
- * {@link cl_context} and {@link cl_command_queue}.
+ * Represents a method to initialize a library.
  */
 @FunctionalInterface
 public interface InitLibraryFunction {
 
     /**
-     * Initializes the OpenCL library.
+     * Initializes a library.
      *
-     * @param context
-     *            the <code>cl_context</code> to be used for the library
+     * @param device
+     *            the <code>device</code> to be used for the library
      * @param queue
-     *            the <code>cl_command_queue</code> to be used for the library
-     * @exception CLException
-     *                if an error occurs during initialization of the library
+     *            the <code>CommandStream</code> to be used for the library
      */
-    public void initialize(cl_context context, cl_command_queue queue) throws CLException;
+    public void initialize(Device device, CommandStream queue);
 }

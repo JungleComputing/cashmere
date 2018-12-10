@@ -57,18 +57,19 @@ class CudaInfo {
     };
 
     static DeviceInfo getDeviceInfo(CUdevice device) {
-        String openCLDeviceName = CudaInfo.getName(device);
-        if (CUDA_TO_MCL_DEVICE_INFO.containsKey(openCLDeviceName)) {
-            DeviceInfo deviceInfo = CUDA_TO_MCL_DEVICE_INFO.get(openCLDeviceName);
-            logger.info("Found MCL device: " + deviceInfo.getName() + " (" + openCLDeviceName + ")");
+        String CudaDeviceName = CudaInfo.getName(device);
+        if (CUDA_TO_MCL_DEVICE_INFO.containsKey(CudaDeviceName)) {
+            DeviceInfo deviceInfo = CUDA_TO_MCL_DEVICE_INFO.get(CudaDeviceName);
+            logger.info("Found MCL device: " + deviceInfo.getName() + " (" + CudaDeviceName + ")");
             return deviceInfo;
         } else {
-            logger.warn("Found OpenCL device: " + openCLDeviceName);
+            logger.warn("Found Cuda device: " + CudaDeviceName);
             logger.warn("This is an unkown MCL device, please add it to MCL");
             return new DeviceInfo("unknown", 1, "Unknown", 1 * GB);
         }
     }
 
+    // TODO: when to call this?
     private static synchronized void initialize() {
         if (!initialized) {
             initialized = true;

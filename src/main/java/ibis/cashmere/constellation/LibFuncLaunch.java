@@ -16,14 +16,8 @@
 
 package ibis.cashmere.constellation;
 
-import static org.jocl.CL.clWaitForEvents;
-
-import java.util.Arrays;
-
-import org.jocl.cl_event;
-
 import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.util.ThreadPool;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
 
 /**
  * Represents one specific launch of a {@link LibFunc}. While {@link #launch} methods can only be called once, it is possible to
@@ -56,37 +50,16 @@ public class LibFuncLaunch extends Launch {
      */
     public void launch(boolean synchronous, LaunchFunction launchFunction) {
         device.launched();
-        cl_event event = new cl_event();
-        final cl_event[] wbeArray = writeBufferEvents.toArray(new cl_event[writeBufferEvents.size()]);
+        final DeviceEvent[] wbeArray = writeBufferEvents.toArray(new DeviceEvent[writeBufferEvents.size()]);
 
-        Event.retainEvents(wbeArray);
+        DeviceEvent.retainEvents(wbeArray);
 
-        if (logger.isTraceEnabled()) {
-            logger.debug("Launch: events to wait for: " + Arrays.toString(wbeArray));
-            ThreadPool.createNew(new Thread() {
-                @Override
-                public void run() {
-                    if (wbeArray.length != 0) {
-                        clWaitForEvents(wbeArray.length, wbeArray);
-                    }
-                    System.out.println("Test wait successful: " + Arrays.toString(wbeArray));
-                }
-            }, "test event waiter");
-        }
-
-        device.withAllocationError(() -> {
-            launchFunction.launch(executeQueue, wbeArray.length, wbeArray.length == 0 ? null : wbeArray, event);
-            return 0;// is ignored, to make compiler happy.
+        DeviceEvent event = device.withAllocationError(() -> {
+            return launchFunction.launch(executeQueue, wbeArray.length == 0 ? null : wbeArray);
         });
 
-        if (eventLogger.isDebugEnabled()) {
-            Event.nrEvents.getAndIncrement();
-            eventLogger.debug(
-                    "Launched LibFunc: " + event + " (new event) depends on : " + Arrays.toString(wbeArray) + "(retained)");
-            eventLogger.debug("Storing {} in Launch.executeEvents", event);
-        }
-
         executeEvents.add(event);
+
         registerExecuteEventToDevice(event);
 
         launched = true;

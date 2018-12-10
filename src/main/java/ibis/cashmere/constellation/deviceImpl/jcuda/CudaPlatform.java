@@ -7,11 +7,13 @@ import ibis.cashmere.constellation.Cashmere;
 import ibis.cashmere.constellation.deviceAPI.Device;
 import ibis.cashmere.constellation.deviceAPI.Platform;
 import ibis.cashmere.constellation.deviceAPI.Pointer;
+import jcuda.driver.JCudaDriver;
 
 public class CudaPlatform implements Platform {
 
     @Override
     public void initializePlatform(Map<String, List<Device>> devices, Cashmere cashmere) {
+        JCudaDriver.setExceptionsEnabled(true);
         // TODO Auto-generated method stub
 
     }

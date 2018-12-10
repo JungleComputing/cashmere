@@ -17,6 +17,7 @@
 package ibis.cashmere.constellation;
 
 import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
 
 /**
  * A <code>Kernel</code> represents an MCL kernel. From this kernel one can create more than one {@link KernelLaunch} instances
@@ -49,7 +50,7 @@ public class Kernel extends ManyCoreUnit {
      * @return a new {@link KernelLaunch}
      */
     public KernelLaunch createLaunch(String threadName) {
-        KernelLaunch kernelLaunch = new KernelLaunch(name, threadName, device);
-        return kernelLaunch;
+        return device.createLaunch(name, threadName);
+
     }
 }

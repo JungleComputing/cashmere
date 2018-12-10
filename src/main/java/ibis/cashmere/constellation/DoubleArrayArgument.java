@@ -18,36 +18,35 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_event;
-
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.deviceAPI.Platform;
 import ibis.cashmere.constellation.deviceAPI.Pointer;
 
 public class DoubleArrayArgument extends ArrayArgument {
 
     private double[] ds;
 
-    public DoubleArrayArgument(cl_context context, cl_command_queue writeQueue, cl_command_queue readQueue,
-            ArrayList<cl_event> writeBufferEvents, double[] ds, Direction d) {
-        super(d, context, readQueue);
+    public DoubleArrayArgument(Device device, CommandStream writeQueue, CommandStream readQueue,
+            ArrayList<DeviceEvent> writeBufferEvents, double[] ds, Direction d) {
+        super(device, d, readQueue);
 
         this.ds = ds;
         Pointer dsPointer = Cashmere.cashmere.getPlatform().toPointer(ds);
 
         if (d == Direction.IN || d == Direction.INOUT) {
-            cl_event event = writeBuffer(context, writeQueue, ds.length * Sizeof.cl_double, dsPointer);
+            DeviceEvent event = writeBuffer(device, writeQueue, ds.length * Platform.DOUBLE_SIZE, dsPointer);
             writeBufferEvents.add(event);
         } else {
-            createBuffer(context, ds.length * Sizeof.cl_double, dsPointer);
+            createBuffer(device, ds.length * Platform.DOUBLE_SIZE, dsPointer);
         }
     }
 
     @Override
-    void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
+    public void scheduleReads(ArrayList<DeviceEvent> waitListEvents, ArrayList<DeviceEvent> readBufferEvents, boolean async) {
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, ds.length * Sizeof.cl_double,
+            DeviceEvent event = readBuffer(device, readQueue, waitListEvents, ds.length * Platform.DOUBLE_SIZE,
                     Cashmere.cashmere.getPlatform().toPointer(ds), async);
             if (event != null) {
                 readBufferEvents.add(event);

@@ -16,8 +16,6 @@
 
 package ibis.cashmere.constellation;
 
-import org.jocl.CLException;
-
 /**
  * Represents a method to deinitialize an OpenCL library.
  */
@@ -26,10 +24,7 @@ public interface DeInitLibraryFunction {
 
     /**
      * Deinitializes the OpenCL library
-     *
-     * @exception CLException
-     *                if an error occurs within OpenCL
      */
-    public void deinitialize() throws CLException;
+    public void deinitialize();
 
 }

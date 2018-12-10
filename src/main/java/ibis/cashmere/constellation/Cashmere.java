@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibis.cashmere.constellation.deviceAPI.Device;
+import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
 import ibis.cashmere.constellation.deviceAPI.Platform;
 import ibis.constellation.Activity;
 import ibis.constellation.ActivityIdentifier;

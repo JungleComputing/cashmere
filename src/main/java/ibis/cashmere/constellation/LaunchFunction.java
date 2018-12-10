@@ -16,9 +16,8 @@
 
 package ibis.cashmere.constellation;
 
-import org.jocl.CLException;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_event;
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
 
 /**
  * Represents a method to launch a library function {@link LibFunc}. The supplied parameters can be used to enqueue the library
@@ -34,17 +33,10 @@ public interface LaunchFunction {
      * other OpenCL commands should wait.
      *
      * @param queue
-     *            the {@link cl_command_queue} with which library function executions can be enqueued
-     * @param num_events_in_wait_list
-     *            the number of events in <code>events_in_wait_list</code>
+     *            the {@link CommandStream} with which library function executions can be enqueued
      * @param events_in_wait_list
-     *            contains <code>num_events_in_wait_list</code> events that should finish before the library function
-     * @param event
-     *            the {@link cl_event} that should be returned by this execution of the library function
-     * @exception CLException
-     *                if an error occurs within the OpenCL library.
+     *            contains events that should finish before the library function is invoked.
      */
-    public void launch(cl_command_queue queue, int num_events_in_wait_list, cl_event[] events_in_wait_list, cl_event event)
-            throws CLException;
+    public DeviceEvent launch(CommandStream queue, DeviceEvent[] events_in_wait_list);
 
 }

@@ -14,33 +14,36 @@
  * limitations under the License.
  */
 
-package ibis.cashmere.constellation;
+package ibis.cashmere.constellation.deviceImpl.jocl;
 
 import static org.jocl.CL.clEnqueueNDRangeKernel;
 import static org.jocl.CL.clReleaseKernel;
+import static org.jocl.CL.clRetainEvent;
 import static org.jocl.CL.clSetKernelArg;
-import static org.jocl.CL.clWaitForEvents;
 
 import java.util.Arrays;
 
 import org.jocl.cl_event;
 import org.jocl.cl_kernel;
 
+import ibis.cashmere.constellation.Argument;
+import ibis.cashmere.constellation.Kernel;
 import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.util.ThreadPool;
+import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
 
 /**
  * Represents one specific launch of a <code>Kernel</code> . While {@link #launch launch} methods can only be called once, it is
  * possible to create multiple launches from a {@link Kernel}.
  */
-public class KernelLaunch extends Launch {
+public class OpenCLKernelLaunch extends KernelLaunch {
 
     private cl_kernel kernel;
 
-    // A KernelLaunch can only be created from within the package
-    KernelLaunch(String kernelName, String threadName, Device device) {
+    // A OpenCLKernelLaunch can only be created from within the package
+    OpenCLKernelLaunch(String kernelName, String threadName, Device device) {
         super(kernelName, threadName, device);
-        this.kernel = device.getKernel(kernelName);
+        this.kernel = ((OpenCLDevice) device).getKernel(kernelName);
     }
 
     /*
@@ -63,6 +66,7 @@ public class KernelLaunch extends Launch {
      * @param blockZ
      *            the size of the block in the Z direction
      */
+    @Override
     public void launch(int gridX, int gridY, int gridZ, int blockX, int blockY, int blockZ) {
         launch(gridX, gridY, gridZ, blockX, blockY, blockZ, true);
     }
@@ -85,40 +89,31 @@ public class KernelLaunch extends Launch {
      * @param synchronous
      *            indicates whether the launch should be synchronous or asynchronous
      */
+    @Override
     public void launch(int gridX, int gridY, int gridZ, int blockX, int blockY, int blockZ, boolean synchronous) {
         long global_work_size[] = new long[] { gridX, gridY, gridZ };
         long local_work_size[] = new long[] { blockX, blockY, blockZ };
 
         device.launched();
+
+        final cl_event[] wbeArray = new cl_event[writeBufferEvents.size()];
+        for (int i = 0; i < writeBufferEvents.size(); i++) {
+            wbeArray[i] = ((OpenCLEvent) writeBufferEvents.get(i)).getCLEvent();
+            clRetainEvent(wbeArray[i]);
+        }
+
         cl_event event = new cl_event();
-        final cl_event[] wbeArray = writeBufferEvents.toArray(new cl_event[writeBufferEvents.size()]);
-
-        Event.retainEvents(wbeArray);
-
-        if (logger.isTraceEnabled()) {
-            logger.debug("Launch: events to wait for: " + Arrays.toString(wbeArray));
-            ThreadPool.createNew(new Thread() {
-                @Override
-                public void run() {
-                    if (wbeArray.length != 0) {
-                        clWaitForEvents(wbeArray.length, wbeArray);
-                    }
-                    System.out.println("Test wait successful: " + Arrays.toString(wbeArray));
-                }
-            }, "test event waiter");
-        }
-
-        device.withAllocationError(() -> clEnqueueNDRangeKernel(executeQueue, kernel, 3, null, global_work_size, local_work_size,
-                wbeArray.length, wbeArray.length == 0 ? null : wbeArray, event));
-        if (eventLogger.isDebugEnabled()) {
-            Event.nrEvents.getAndIncrement();
-            eventLogger.debug(
+        device.withAllocationError(() -> clEnqueueNDRangeKernel(((OpenCLCommandStream) executeQueue).getQueue(), kernel, 3, null,
+                global_work_size, local_work_size, wbeArray.length, wbeArray.length == 0 ? null : wbeArray, event));
+        if (logger.isDebugEnabled()) {
+            logger.debug(
                     "Launched " + name + ": " + event + " (new event) depends on : " + Arrays.toString(wbeArray) + "(retained)");
-            eventLogger.debug("Storing {} in Launch.executeEvents", event);
+            logger.debug("Storing {} in Launch.executeEvents", event);
         }
 
-        executeEvents.add(event);
-        registerExecuteEventToDevice(event);
+        DeviceEvent evnt = new OpenCLEvent(event);
+        executeEvents.add(evnt);
+        registerExecuteEventToDevice(evnt);
 
         launched = true;
         if (synchronous) {
@@ -139,7 +134,7 @@ public class KernelLaunch extends Launch {
         if (logger.isDebugEnabled()) {
             logger.debug("setArgument: size = " + size + ", getPointer(): " + arg.getPointer());
         }
-        clSetKernelArg(kernel, nrArgs, size, arg.getPointer());
+        clSetKernelArg(kernel, nrArgs, size, ((OpenCLPointer) arg.getPointer()).getPointer());
         nrArgs++;
     }
 }

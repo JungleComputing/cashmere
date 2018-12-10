@@ -16,10 +16,6 @@
 
 package ibis.cashmere.constellation;
 
-import static org.jocl.CL.CL_PROFILING_COMMAND_END;
-import static org.jocl.CL.CL_PROFILING_COMMAND_START;
-import static org.jocl.CL.clWaitForEvents;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,19 +25,18 @@ import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_context;
-import org.jocl.cl_event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.deviceAPI.CommandStream;
 import ibis.cashmere.constellation.deviceAPI.Device;
 import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.deviceAPI.Platform;
 import ibis.cashmere.constellation.deviceAPI.Pointer;
+import ibis.cashmere.constellation.deviceImpl.jocl.OpenCLKernelLaunch;
 
 /**
- * The abstract base class for {@link KernelLaunch} and {@link LibFuncLaunch} that contains shared code.
+ * The abstract base class for {@link OpenCLKernelLaunch} and {@link LibFuncLaunch} that contains shared code.
  */
 public abstract class Launch {
 
@@ -54,10 +49,9 @@ public abstract class Launch {
     protected int nrArgs;
     protected ArrayList<Argument> argsToClean;
 
-    protected cl_context context;
-    protected cl_command_queue writeQueue;
-    protected cl_command_queue executeQueue;
-    protected cl_command_queue readQueue;
+    protected CommandStream writeQueue;
+    protected CommandStream executeQueue;
+    protected CommandStream readQueue;
 
     protected ArrayList<DeviceEvent> writeBufferEvents;
     protected ArrayList<DeviceEvent> executeEvents;
@@ -86,10 +80,9 @@ public abstract class Launch {
         this.nrArgs = 0;
         this.argsToClean = new ArrayList<Argument>();
 
-        this.context = device.context;
-        this.writeQueue = device.writeQueue;
-        this.executeQueue = device.executeQueue;
-        this.readQueue = device.readQueue;
+        this.writeQueue = device.getWriteQueue();
+        this.executeQueue = device.getExecuteQueue();
+        this.readQueue = device.getReadQueue();
 
         this.writeBufferEvents = new ArrayList<DeviceEvent>();
         this.executeEvents = new ArrayList<DeviceEvent>();
@@ -119,7 +112,7 @@ public abstract class Launch {
      */
     public void setArgument(int i, Argument.Direction d) {
         IntArgument arg = new IntArgument(i, d);
-        setArgument(Sizeof.cl_int, arg);
+        setArgument(Platform.INT_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -133,7 +126,7 @@ public abstract class Launch {
      */
     public void setArgument(float f, Argument.Direction d) {
         FloatArgument arg = new FloatArgument(f, d);
-        setArgument(Sizeof.cl_float, arg);
+        setArgument(Platform.FLOAT_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -147,7 +140,7 @@ public abstract class Launch {
      */
     public void setArgument(double f, Argument.Direction d) {
         DoubleArgument arg = new DoubleArgument(f, d);
-        setArgument(Sizeof.cl_double, arg);
+        setArgument(Platform.DOUBLE_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -160,8 +153,8 @@ public abstract class Launch {
      *            indicates whether the value is only read, only written, or both
      */
     public void setArgument(float[][] a, Argument.Direction d) {
-        FloatArray2DArgument arg = new FloatArray2DArgument(context, writeQueue, readQueue, writeBufferEvents, a, d);
-        setArgument(Sizeof.cl_mem, arg);
+        FloatArray2DArgument arg = new FloatArray2DArgument(device, writeQueue, readQueue, writeBufferEvents, a, d);
+        setArgument(Platform.MEM_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -174,8 +167,8 @@ public abstract class Launch {
      *            indicates whether the value is only read, only written, or both
      */
     public void setArgument(float[] a, Argument.Direction d) {
-        FloatArrayArgument arg = new FloatArrayArgument(context, writeQueue, readQueue, writeBufferEvents, a, d);
-        setArgument(Sizeof.cl_mem, arg);
+        FloatArrayArgument arg = new FloatArrayArgument(device, writeQueue, readQueue, writeBufferEvents, a, d);
+        setArgument(Platform.MEM_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -188,8 +181,8 @@ public abstract class Launch {
      *            indicates whether the value is only read, only written, or both
      */
     public void setArgument(double[] a, Argument.Direction d) {
-        DoubleArrayArgument arg = new DoubleArrayArgument(context, writeQueue, readQueue, writeBufferEvents, a, d);
-        setArgument(Sizeof.cl_mem, arg);
+        DoubleArrayArgument arg = new DoubleArrayArgument(device, writeQueue, readQueue, writeBufferEvents, a, d);
+        setArgument(Platform.MEM_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -202,8 +195,8 @@ public abstract class Launch {
      *            indicates whether the value is only read, only written, or both
      */
     public void setArgument(Buffer buffer, Argument.Direction d) {
-        BufferArgument arg = new BufferArgument(context, writeQueue, readQueue, writeBufferEvents, buffer, d);
-        setArgument(Sizeof.cl_mem, arg);
+        BufferArgument arg = new BufferArgument(device, writeQueue, readQueue, writeBufferEvents, buffer, d);
+        setArgument(Platform.MEM_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -230,8 +223,8 @@ public abstract class Launch {
      *            indicates whether the value is only read, only written, or both
      */
     public void setArgument(int[] a, Argument.Direction d) {
-        IntArrayArgument arg = new IntArrayArgument(context, writeQueue, readQueue, writeBufferEvents, a, d);
-        setArgument(Sizeof.cl_mem, arg);
+        IntArrayArgument arg = new IntArrayArgument(device, writeQueue, readQueue, writeBufferEvents, a, d);
+        setArgument(Platform.MEM_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -244,8 +237,8 @@ public abstract class Launch {
      *            indicates whether the value is only read, only written, or both
      */
     public void setArgument(byte[] a, Argument.Direction d) {
-        ByteArrayArgument arg = new ByteArrayArgument(context, writeQueue, readQueue, writeBufferEvents, a, d);
-        setArgument(Sizeof.cl_mem, arg);
+        ByteArrayArgument arg = new ByteArrayArgument(device, writeQueue, readQueue, writeBufferEvents, a, d);
+        setArgument(Platform.MEM_SIZE, arg);
         argsToClean.add(arg);
     }
 
@@ -260,7 +253,7 @@ public abstract class Launch {
      */
     public void setArgumentNoCopy(float[] a, Argument.Direction d) {
         FloatArrayArgument arg = device.getArgument(a);
-        setArgument(Sizeof.cl_mem, arg);
+        setArgument(Platform.MEM_SIZE, arg);
 
         noCopyFloats.add(a);
         // make the execute dependent on this copy.
@@ -278,7 +271,7 @@ public abstract class Launch {
      */
     public void setArgumentNoCopy(double[] a, Argument.Direction d) {
         DoubleArrayArgument arg = device.getArgument(a);
-        setArgument(Sizeof.cl_mem, arg);
+        setArgument(Platform.MEM_SIZE, arg);
 
         noCopyDoubles.add(a);
         // make the execute dependent on this copy.
@@ -296,7 +289,7 @@ public abstract class Launch {
      */
     public void setArgumentNoCopy(Buffer a, Argument.Direction d) {
         BufferArgument arg = device.getArgument(a);
-        setArgument(Sizeof.cl_mem, arg);
+        setArgument(Platform.MEM_SIZE, arg);
 
         noCopyBuffers.add(a);
         // make the execute dependent on this copy.
@@ -314,7 +307,7 @@ public abstract class Launch {
      */
     public void setArgumentNoCopy(Pointer a, Argument.Direction d) {
         PointerArgument arg = device.getArgument(a);
-        setArgument(Sizeof.cl_mem, arg);
+        setArgument(Platform.MEM_SIZE, arg);
 
         noCopyPointers.add(a);
         // make the execute dependent on this copy.
@@ -332,7 +325,7 @@ public abstract class Launch {
      */
     public void setArgumentNoCopy(int[] a, Argument.Direction d) {
         IntArrayArgument arg = device.getArgument(a);
-        setArgument(Sizeof.cl_mem, arg);
+        setArgument(Platform.MEM_SIZE, arg);
 
         noCopyInts.add(a);
         // make the execute dependent on this copy.
@@ -350,7 +343,7 @@ public abstract class Launch {
      */
     public void setArgumentNoCopy(byte[] a, Argument.Direction d) {
         ByteArrayArgument arg = device.getArgument(a);
-        setArgument(Sizeof.cl_mem, arg);
+        setArgument(Platform.MEM_SIZE, arg);
 
         noCopyBytes.add(a);
         // make the execute dependent on this copy.
@@ -492,12 +485,7 @@ public abstract class Launch {
 
     private void clean(String type, ArrayList<DeviceEvent> events) {
         for (DeviceEvent event : events) {
-            if (eventLogger.isDebugEnabled()) {
-                eventLogger.debug("About to clean event {}", event);
-                eventLogger.debug("Removing {} from Launch.{}Events", event, type);
-                event.showEvent(type);
-            }
-            Event.clean(event);
+            event.clean();
         }
         events.clear();
     }
@@ -526,24 +514,21 @@ public abstract class Launch {
         }
     }
 
-    private cl_event[] waitForExecEvents() {
-        cl_event[] exevnts = executeEvents.toArray(new cl_event[executeEvents.size()]);
+    private DeviceEvent[] waitForExecEvents() {
+        DeviceEvent[] exevnts = executeEvents.toArray(new DeviceEvent[executeEvents.size()]);
         if (logger.isDebugEnabled()) {
             logger.debug("finish: events to wait for: " + Arrays.toString(exevnts));
         }
-        if (eventLogger.isDebugEnabled()) {
-            eventLogger.debug("Waiting for executes: {}", Arrays.toString(exevnts));
-        }
-        clWaitForEvents(exevnts.length, exevnts);
+        device.waitEvents(exevnts);
         if (logger.isDebugEnabled()) {
             logger.debug("finish: waiting for events done");
         }
         return exevnts;
     }
 
-    private void addExecuteEventToTimer(cl_event event) {
-        long start = Cashmere.getValue(event, CL_PROFILING_COMMAND_START);
-        long end = Cashmere.getValue(event, CL_PROFILING_COMMAND_END);
+    private void addExecuteEventToTimer(DeviceEvent event) {
+        long start = event.getTime(DeviceEvent.TimeType.TIME_START);
+        long end = event.getTime(DeviceEvent.TimeType.TIME_END);
         if (start != 0 && end > start) {
             // Sometimes, end == 0 or start == 0. Don't know why.
             double time = (end - start) / 1e9;
@@ -555,13 +540,14 @@ public abstract class Launch {
     }
 
     private void cleanAsynchronousArguments() {
-        cl_event[] readBufferEventsArray = readBufferEvents.toArray(new cl_event[readBufferEvents.size()]);
+        DeviceEvent[] readBufferEventsArray = readBufferEvents.toArray(new DeviceEvent[readBufferEvents.size()]);
+        device.waitEvents(readBufferEventsArray);
 
         if (readBufferEventsArray.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("finish: read buffer events to wait for: " + Arrays.toString(readBufferEventsArray));
             }
-            clWaitForEvents(readBufferEventsArray.length, readBufferEventsArray);
+            device.waitEvents(readBufferEventsArray);
         }
         for (Argument a : argsToClean) {
             if (a.readScheduled()) {
@@ -581,8 +567,8 @@ public abstract class Launch {
 
     private void addWriteEvent(DeviceEvent event) {
         if (event != null) {
-            if (eventLogger.isDebugEnabled()) {
-                eventLogger.debug("Storing {} in Launch.writeBufferEvents", event);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Storing {} in Launch.writeBufferEvents", event);
             }
             writeBufferEvents.add(event);
         }

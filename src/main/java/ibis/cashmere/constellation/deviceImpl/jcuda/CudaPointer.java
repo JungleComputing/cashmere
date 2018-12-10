@@ -1,10 +1,14 @@
 package ibis.cashmere.constellation.deviceImpl.jcuda;
 
+import static jcuda.driver.JCudaDriver.cuMemFree;
+
 import ibis.cashmere.constellation.deviceAPI.Pointer;
+import jcuda.driver.CUdeviceptr;
 
 public class CudaPointer implements Pointer {
 
     final jcuda.Pointer cuPointer;
+    private CUdeviceptr ptr;
 
     public CudaPointer(byte[] a) {
         cuPointer = jcuda.Pointer.to(a);
@@ -26,5 +30,18 @@ public class CudaPointer implements Pointer {
         cuPointer = jcuda.Pointer.to(b);
     }
 
-    // TODO: encapsulate CUdeviceptr
+    CudaPointer(CUdeviceptr ptr) {
+        this.ptr = ptr;
+        cuPointer = jcuda.Pointer.to(ptr);
+    }
+
+    @Override
+    public boolean clean() {
+        if (ptr != null) {
+            cuMemFree(ptr);
+            ptr = null;
+            return true;
+        }
+        return false;
+    }
 }

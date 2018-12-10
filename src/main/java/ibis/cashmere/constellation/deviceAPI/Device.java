@@ -17,13 +17,6 @@
 package ibis.cashmere.constellation.deviceAPI;
 
 import static ibis.constellation.util.MemorySizes.toStringBytes;
-import static org.jocl.CL.CL_MEM_READ_WRITE;
-import static org.jocl.CL.CL_PROFILING_COMMAND_QUEUED;
-import static org.jocl.CL.CL_TRUE;
-import static org.jocl.CL.clCreateBuffer;
-import static org.jocl.CL.clCreateKernelsInProgram;
-import static org.jocl.CL.clEnqueueWriteBuffer;
-import static org.jocl.CL.clReleaseMemObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,14 +26,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jocl.CL;
-import org.jocl.CLException;
-import org.jocl.Sizeof;
-import org.jocl.cl_command_queue;
-import org.jocl.cl_device_id;
-import org.jocl.cl_kernel;
-import org.jocl.cl_mem;
-import org.jocl.cl_program;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,35 +52,27 @@ public abstract class Device implements Comparable<Device> {
      */
     protected static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device");
     private static final Logger memlogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device/memory");
-
-    /*
-     * Administration for the Device in relation to OpenCL
-     */
+    private static final Logger eventlogger = LoggerFactory.getLogger("ibis.cashmere.constellation.Device/event");
 
     private Cashmere cashmere;
-    private cl_device_id deviceID;
 
-    // these variables are also accessed by Launch
-    protected Context context;
-    cl_command_queue writeQueue;
-    cl_command_queue executeQueue;
-    cl_command_queue readQueue;
+    private CommandStream writeQueue;
+    private CommandStream executeQueue;
+    private CommandStream readQueue;
     private int nrKernelLaunches;
-
-    // A static variable that keeps track of all the devices in the compute node
-    private static final Map<Context, Device> devices = new HashMap<Context, Device>();
 
     // the information for this device
     protected final DeviceInfo info;
 
-    // the programs compiled for this Device
-    private Map<String, cl_program> kernels;
-
     /*
      * Keeping track of the state of the Device
      */
-    // the offset of OpenCL events timings to the host
+    // the offset of events timings to the host
     private long offsetHostDevice;
+
+    protected void setOffsetHostDevice(long offsetHostDevice) {
+        this.offsetHostDevice = offsetHostDevice;
+    }
 
     // keeping track of the number of kernels launched
     private int launched;
@@ -154,8 +131,6 @@ public abstract class Device implements Comparable<Device> {
 
         readBufferEventsMap = new HashMap<String, ArrayList<DeviceEvent>>();
 
-        this.kernels = new HashMap<String, cl_program>();
-
         this.bufferArguments = new IdentityHashMap<Buffer, BufferArgument>();
         this.pointerArguments = new IdentityHashMap<Pointer, PointerArgument>();
         this.floatArrayArguments = new IdentityHashMap<float[], FloatArrayArgument>();
@@ -187,15 +162,25 @@ public abstract class Device implements Comparable<Device> {
         this.memoryReserved = 0;
     }
 
-    /*
-     * Public methods
-     */
+    public abstract DeviceEvent writeNoCreateBuffer(CommandStream q, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
+            Pointer devicePtr);
 
-    public void setContext(Context context) {
-        this.context = context;
-        devices.put(context, this);
+    public abstract DeviceEvent enqueueReadBuffer(CommandStream q, boolean asynch, DeviceEvent[] waitEvents, long size,
+            Pointer hostPtr, Pointer devicePtr);
 
-    }
+    public abstract <T> T withAllocationError(Supplier<T> s);
+
+    public abstract void waitEvents(DeviceEvent[] waitEvents);
+
+    public abstract KernelLaunch createLaunch(String name, String threadname);
+
+    public abstract boolean registeredKernel(String name);
+
+    public abstract Pointer createBuffer(Argument.Direction d, long size);
+
+    public abstract void addKernel(String kernelSource);
+
+    protected abstract void measureTimeOffset();
 
     /*
      * General device management
@@ -224,7 +209,7 @@ public abstract class Device implements Comparable<Device> {
      *
      * @return the nickname.
      */
-    String getNickName() {
+    public String getNickName() {
         return info.getNickName();
     }
 
@@ -263,11 +248,6 @@ public abstract class Device implements Comparable<Device> {
         return expectedTermination < expectedTerminationDevice ? -1 : expectedTermination == expectedTerminationDevice ? 0 : 1;
     }
 
-    /**
-     * Returns the nickname of this device.
-     *
-     * @return the nickname of this device.
-     */
     @Override
     public String toString() {
         return info.toString();
@@ -285,8 +265,8 @@ public abstract class Device implements Comparable<Device> {
      * @return a <code>Pointer</code> to the memory on the device
      */
     public Pointer allocate(long size) {
-        PointerArgument a = new PointerArgument(context, readQueue);
-        a.createBuffer(context, size, null);
+        PointerArgument a = new PointerArgument(this, getReadQueue());
+        a.createBuffer(this, size, null);
 
         Pointer pointer = a.getPointer();
         synchronized (pointerArguments) {
@@ -322,7 +302,7 @@ public abstract class Device implements Comparable<Device> {
      */
     public void copy(Buffer buffer, Argument.Direction d) {
         performCopy(bufferArguments, writeEventsBuffers, writeEventsBuffersInversed, buffer,
-                (writeBufferEvents) -> new BufferArgument(context, writeQueue, readQueue, writeBufferEvents, buffer, d),
+                (writeBufferEvents) -> new BufferArgument(this, getWriteQueue(), getReadQueue(), writeBufferEvents, buffer, d),
                 () -> buffer.capacity());
     }
 
@@ -337,7 +317,7 @@ public abstract class Device implements Comparable<Device> {
      */
     public void copy(float[] a, Argument.Direction d) {
         performCopy(floatArrayArguments, writeEventsFloats, writeEventsFloatsInversed, a,
-                (x) -> new FloatArrayArgument(context, writeQueue, readQueue, x, a, d), () -> a.length * 4);
+                (x) -> new FloatArrayArgument(this, getWriteQueue(), getReadQueue(), x, a, d), () -> a.length * 4);
     }
 
     /**
@@ -351,7 +331,7 @@ public abstract class Device implements Comparable<Device> {
      */
     public void copy(double[] a, Argument.Direction d) {
         performCopy(doubleArrayArguments, writeEventsDoubles, writeEventsDoublesInversed, a,
-                (x) -> new DoubleArrayArgument(context, writeQueue, readQueue, x, a, d), () -> a.length * 8);
+                (x) -> new DoubleArrayArgument(this, getWriteQueue(), getReadQueue(), x, a, d), () -> a.length * 8);
     }
 
     /**
@@ -365,7 +345,7 @@ public abstract class Device implements Comparable<Device> {
      */
     public void copy(int[] a, Argument.Direction d) {
         performCopy(intArrayArguments, writeEventsInts, writeEventsIntsInversed, a,
-                (x) -> new IntArrayArgument(context, writeQueue, readQueue, x, a, d), () -> a.length * 4);
+                (x) -> new IntArrayArgument(this, getWriteQueue(), getReadQueue(), x, a, d), () -> a.length * 4);
     }
 
     /**
@@ -379,7 +359,7 @@ public abstract class Device implements Comparable<Device> {
      */
     public void copy(byte[] a, Argument.Direction d) {
         performCopy(byteArrayArguments, writeEventsBytes, writeEventsBytesInversed, a,
-                (x) -> new ByteArrayArgument(context, writeQueue, readQueue, x, a, d), () -> a.length);
+                (x) -> new ByteArrayArgument(this, getWriteQueue(), getReadQueue(), x, a, d), () -> a.length);
     }
 
     /**
@@ -397,15 +377,15 @@ public abstract class Device implements Comparable<Device> {
         synchronized (pointerArguments) {
             a = pointerArguments.get(to);
             if (a != null) {
-                writePointerEvent = a.writeBufferNoCreateBuffer(context, writeQueue, null, from.capacity(),
-                        Pointer.to(from.byteBuffer));
+                writePointerEvent = a.writeBufferNoCreateBuffer(this, getWriteQueue(), null, from.capacity(),
+                        cashmere.getPlatform().toPointer(from.getByteBuffer()));
             } else {
                 throw new Error("Unknown pointer");
             }
         }
 
         synchronized (writeEventsPointers) {
-            Logger logger = Device.logger.isDebugEnabled() ? Device.logger : Device.eventLogger;
+            Logger logger = Device.logger.isDebugEnabled() ? Device.logger : Device.eventlogger;
             if (logger.isDebugEnabled()) {
                 logger.debug("Copy Buffer to Pointer: event = " + writePointerEvent);
                 logger.debug("storing last event in Device.writeEvents<type>");
@@ -416,7 +396,7 @@ public abstract class Device implements Comparable<Device> {
                 if (logger.isDebugEnabled()) {
                     logger.debug("old {} associated with {}, about to clean old event", old_event, to);
                 }
-                Event.clean(old_event);
+                old_event.clean();
                 Pointer p = writeEventsPointersInversed.remove(old_event); // Added
                 if (p == null) {
                     throw new Error("Inconsistency in writeEventsPointers");
@@ -553,7 +533,7 @@ public abstract class Device implements Comparable<Device> {
      *            the memory from which is copied
      */
     public void get(double[] to, Pointer from) {
-        performPointerGet(from, cashmere.getPlatform().toPointer(to), to.length * Sizeof.cl_double);
+        performPointerGet(from, cashmere.getPlatform().toPointer(to), to.length * Platform.DOUBLE_SIZE);
     }
 
     /**
@@ -565,7 +545,7 @@ public abstract class Device implements Comparable<Device> {
      *            the memory from which is copied
      */
     public void get(float[] to, Pointer from) {
-        performPointerGet(from, cashmere.getPlatform().toPointer(to), to.length * Sizeof.cl_float);
+        performPointerGet(from, cashmere.getPlatform().toPointer(to), to.length * Platform.FLOAT_SIZE);
     }
 
     /*
@@ -663,32 +643,11 @@ public abstract class Device implements Comparable<Device> {
      */
 
     public void initializeLibrary(InitLibraryFunction func) {
-        func.initialize(context, executeQueue);
+        func.initialize(this, getExecuteQueue());
     }
 
     public void deinitializeLibrary(DeInitLibraryFunction func) {
         func.deinitialize();
-    }
-
-    long getOffsetHostDevice() {
-        return offsetHostDevice;
-    }
-
-    public abstract void addKernel(String kernelSource);
-
-    /*
-     * Memory allocation and arguments
-     */
-    public <T> T withAllocationError(Supplier<T> s) {
-        try {
-            return s.get();
-        } catch (CLException e) {
-            if (e.getStatus() == CL.CL_MEM_OBJECT_ALLOCATION_FAILURE) {
-                throw new Error("Got memory allocation failure, you should reserve memory", e);
-            } else {
-                throw new Error("Got exception", e);
-            }
-        }
     }
 
     public FloatArrayArgument getArgument(float[] a) {
@@ -718,9 +677,6 @@ public abstract class Device implements Comparable<Device> {
     /*
      * Setting/querying the state of the device
      */
-    public static Device getDevice(Context context) {
-        return devices.get(context);
-    }
 
     public synchronized void setBusy() {
         setNrKernelLaunches(getNrKernelLaunches() + 1);
@@ -741,30 +697,6 @@ public abstract class Device implements Comparable<Device> {
 
     public boolean asynchReads() {
         return cashmere.isAsynchReads();
-    }
-
-    cl_kernel getKernel() {
-        Collection<cl_program> programCollection = kernels.values();
-        cl_program[] programs = new cl_program[programCollection.size()];
-        programs = programCollection.toArray(programs);
-        cl_program program = programs[0];
-        return getKernelProgram(program);
-    }
-
-    public cl_kernel getKernel(String name) {
-        if (name == null) {
-            return getKernel();
-        }
-        cl_program program = kernels.get(name);
-        return getKernelProgram(program);
-    }
-
-    public boolean registeredKernel(String name) {
-        if (name == null) {
-            return kernels.size() == 1;
-        } else {
-            return kernels.containsKey(name);
-        }
     }
 
     /*
@@ -854,12 +786,52 @@ public abstract class Device implements Comparable<Device> {
         }
     }
 
+    public int getNrKernelLaunches() {
+        return nrKernelLaunches;
+    }
+
+    public void setNrKernelLaunches(int nrKernelLaunches) {
+        this.nrKernelLaunches = nrKernelLaunches;
+    }
+
+    public int getLaunched() {
+        return launched;
+    }
+
+    public void setLaunched(int launched) {
+        this.launched = launched;
+    }
+
+    public CommandStream getWriteQueue() {
+        return writeQueue;
+    }
+
+    public void setWriteQueue(CommandStream writeQueue) {
+        this.writeQueue = writeQueue;
+    }
+
+    public CommandStream getExecuteQueue() {
+        return executeQueue;
+    }
+
+    public void setExecuteQueue(CommandStream executeQueue) {
+        this.executeQueue = executeQueue;
+    }
+
+    public CommandStream getReadQueue() {
+        return readQueue;
+    }
+
+    public void setReadQueue(CommandStream readQueue) {
+        this.readQueue = readQueue;
+    }
+
     /*
      * Debugging
      */
 
     void showExecuteEvents() {
-        if (eventLogger.isDebugEnabled()) {
+        if (eventlogger.isDebugEnabled()) {
             showEvents(executeEventsBuffers, "Buffer");
             showEvents(executeEventsPointers, "Pointer");
             showEvents(executeEventsFloats, "Floats");
@@ -869,33 +841,7 @@ public abstract class Device implements Comparable<Device> {
         }
     }
 
-    /*
-     * Private methods
-     */
-
-    /*
-     * Initialization of the device
-     */
-
-    private void measureTimeOffset() {
-        float f[] = { 0.0f };
-        Pointer fPointer = Pointer.to(f);
-        cl_mem memObject = clCreateBuffer(context, CL_MEM_READ_WRITE, Sizeof.cl_float, null, null);
-        DeviceEvent event = new DeviceEvent();
-        long startHost = System.nanoTime();
-        clEnqueueWriteBuffer(writeQueue, memObject, CL_TRUE, 0, Sizeof.cl_float, fPointer, 0, null, event);
-        clReleaseMemObject(memObject);
-        long startDevice = Cashmere.getValue(event, CL_PROFILING_COMMAND_QUEUED);
-
-        this.offsetHostDevice = startHost - startDevice;
-    }
-
-    private cl_kernel getKernelProgram(cl_program program) {
-        cl_kernel[] kernelArray = new cl_kernel[1];
-        clCreateKernelsInProgram(program, 1, kernelArray, null);
-        cl_kernel kernel = kernelArray[0];
-        return kernel;
-    }
+    // Private methods
 
     /*
      * Managing arguments/memory on the device
@@ -930,10 +876,10 @@ public abstract class Device implements Comparable<Device> {
             }
             synchronized (writeEvents) {
                 if (writeBufferEvents.size() == 1) {
-                    if (eventLogger.isDebugEnabled()) {
-                        eventLogger.debug("Copy Buffer: event = " + writeBufferEvents.get(0));
-                        eventLogger.debug("storing last event in Device.writeEvents<type>");
-                        eventLogger.debug("storing last event in Device.writeEventsInversed<type>");
+                    if (eventlogger.isDebugEnabled()) {
+                        eventlogger.debug("Copy Buffer: event = " + writeBufferEvents.get(0));
+                        eventlogger.debug("storing last event in Device.writeEvents<type>");
+                        eventlogger.debug("storing last event in Device.writeEventsInversed<type>");
                     }
                     DeviceEvent event = writeBufferEvents.get(0);
                     writeEvents.put(k, event);
@@ -1023,7 +969,7 @@ public abstract class Device implements Comparable<Device> {
 
     private void releaseEvents(ArrayList<DeviceEvent> events) {
         for (DeviceEvent event : events) {
-            Event.clean(event);
+            event.clean();
         }
         events.clear();
     }
@@ -1038,14 +984,14 @@ public abstract class Device implements Comparable<Device> {
             DeviceEvent event = writeEvents.remove(k);
             if (event != null) {
                 K kStored = writeEventsInversed.get(event);
-                if (eventLogger.isDebugEnabled()) {
-                    eventLogger.debug("removing {} from Device.writeEvents<type>", event);
+                if (eventlogger.isDebugEnabled()) {
+                    eventlogger.debug("removing {} from Device.writeEvents<type>", event);
                 }
                 if (kStored == k) {
                     writeEventsInversed.remove(event);
-                    eventLogger.debug("removing {} from Device.writeEventsInversed<type>", event);
-                    eventLogger.debug("about to clean {}", event);
-                    Event.clean(event);
+                    eventlogger.debug("removing {} from Device.writeEventsInversed<type>", event);
+                    eventlogger.debug("about to clean {}", event);
+                    event.clean();
                 }
             }
             return event;
@@ -1084,8 +1030,8 @@ public abstract class Device implements Comparable<Device> {
         synchronized (events) {
             events.add(event);
         }
-        if (eventLogger.isDebugEnabled()) {
-            eventLogger.debug("storing {} in Device.executeEvents<type>", event);
+        if (eventlogger.isDebugEnabled()) {
+            eventlogger.debug("storing {} in Device.executeEvents<type>", event);
         }
     }
 
@@ -1093,8 +1039,8 @@ public abstract class Device implements Comparable<Device> {
         synchronized (events) {
             events.remove(event);
         }
-        if (eventLogger.isDebugEnabled()) {
-            eventLogger.debug("removing {} from Device.executeEvents<type>", event);
+        if (eventlogger.isDebugEnabled()) {
+            eventlogger.debug("removing {} from Device.executeEvents<type>", event);
         }
     }
 
@@ -1107,51 +1053,26 @@ public abstract class Device implements Comparable<Device> {
                 if (storedEvent == event) {
                     writeEvents.remove(t);
                     writeEventsInversed.remove(event);
-                    if (eventLogger.isDebugEnabled()) {
-                        eventLogger.debug("removing {} from Device.writeEvents<type>", event);
-                        eventLogger.debug("removing {} from Device.writeEventsInversed<type>", event);
-                        eventLogger.debug("about to clean {}", event);
+                    if (eventlogger.isDebugEnabled()) {
+                        eventlogger.debug("removing {} from Device.writeEvents<type>", event);
+                        eventlogger.debug("removing {} from Device.writeEventsInversed<type>", event);
+                        eventlogger.debug("about to clean {}", event);
                     }
-                    Event.clean(event);
+                    event.clean();
                 }
             }
         }
     }
 
-    /*
-     * Debugging
-     */
-    private void writeBinary(cl_program program, String nameKernel, String nameDevice) {
-        // int nrDevices = 1;
-        // long[] sizes = new long[nrDevices];
-        // clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, nrDevices * Sizeof.size_t, Pointer.to(sizes), null);
-        // byte[][] buffers = new byte[nrDevices][];
-        // Pointer[] pointers = new Pointer[nrDevices];
-        // for (int i = 0; i < nrDevices; i++) {
-        //     buffers[i] = new byte[(int) sizes[i] + 1];
-        //     pointers[i] = Pointer.to(buffers[i]);
-        // }
-        // Pointer p = Pointer.to(pointers);
-        // clGetProgramInfo(program, CL_PROGRAM_BINARIES, nrDevices * Sizeof.POINTER, p, null);
-        // String binary = new String(buffers[0], 0, buffers[0].length - 1).trim();
-        // try {
-        //     PrintStream out = new PrintStream(new File(nameDevice + "_" + nameKernel + ".ptx"));
-        //     out.println(binary);
-        //     out.close();
-        // } catch (IOException e) {
-        //     System.err.println(e.getMessage());
-        // }
-    }
-
     private <K> void showEvents(Map<K, ArrayList<DeviceEvent>> executeEvents, String type) {
         int size = executeEvents.size();
         if (size > 0) {
-            eventLogger.debug("executeEvents{} has {} elements", type, size);
+            eventlogger.debug("executeEvents{} has {} elements", type, size);
             Collection<ArrayList<DeviceEvent>> values = executeEvents.values();
             for (ArrayList<DeviceEvent> events : values) {
-                eventLogger.debug("  key 1:");
+                eventlogger.debug("  key 1:");
                 for (DeviceEvent event : events) {
-                    eventLogger.debug("    {}", event);
+                    eventlogger.debug("    {}", event);
                     // Event.showEvent("execute", event);
                     // can segfault if the even has been released
                 }
@@ -1159,19 +1080,4 @@ public abstract class Device implements Comparable<Device> {
         }
     }
 
-    public int getNrKernelLaunches() {
-        return nrKernelLaunches;
-    }
-
-    public void setNrKernelLaunches(int nrKernelLaunches) {
-        this.nrKernelLaunches = nrKernelLaunches;
-    }
-
-    public int getLaunched() {
-        return launched;
-    }
-
-    public void setLaunched(int launched) {
-        this.launched = launched;
-    }
 }
