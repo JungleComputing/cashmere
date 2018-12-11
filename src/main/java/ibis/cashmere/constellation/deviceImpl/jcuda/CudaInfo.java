@@ -18,10 +18,7 @@ package ibis.cashmere.constellation.deviceImpl.jcuda;
 
 import static ibis.constellation.util.MemorySizes.GB;
 import static jcuda.driver.CUresult.CUDA_SUCCESS;
-import static jcuda.driver.JCudaDriver.cuDeviceGet;
-import static jcuda.driver.JCudaDriver.cuDeviceGetCount;
 import static jcuda.driver.JCudaDriver.cuDeviceGetName;
-import static jcuda.driver.JCudaDriver.cuInit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,8 +34,6 @@ class CudaInfo {
     private static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Cashmere/CUDA");
 
     private static final Map<String, DeviceInfo> CUDA_TO_MCL_DEVICE_INFO;
-
-    private static boolean initialized = false;
 
     static {
         CUDA_TO_MCL_DEVICE_INFO = new HashMap<String, DeviceInfo>();
@@ -66,22 +61,6 @@ class CudaInfo {
             logger.warn("Found Cuda device: " + CudaDeviceName);
             logger.warn("This is an unkown MCL device, please add it to MCL");
             return new DeviceInfo("unknown", 1, "Unknown", 1 * GB);
-        }
-    }
-
-    // TODO: when to call this?
-    private static synchronized void initialize() {
-        if (!initialized) {
-            initialized = true;
-            cuInit(0);
-            final int[] count = new int[1];
-            cuDeviceGetCount(count);
-
-            final CUdevice[] devices = new CUdevice[count[0]];
-            for (int i = 0; i < devices.length; i++) {
-                devices[i] = new CUdevice();
-                cuDeviceGet(devices[i], i);
-            }
         }
     }
 

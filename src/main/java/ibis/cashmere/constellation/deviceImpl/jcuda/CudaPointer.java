@@ -35,6 +35,14 @@ public class CudaPointer implements Pointer {
         cuPointer = jcuda.Pointer.to(ptr);
     }
 
+    CUdeviceptr getPtr() {
+        return ptr;
+    }
+
+    jcuda.Pointer getPointer() {
+        return cuPointer;
+    }
+
     @Override
     public boolean clean() {
         if (ptr != null) {

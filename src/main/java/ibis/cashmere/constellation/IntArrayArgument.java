@@ -38,7 +38,9 @@ public class IntArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             DeviceEvent event = writeBuffer(device, writeQueue, is.length * Platform.INT_SIZE, isPointer);
-            writeBufferEvents.add(event);
+            if (event != null) {
+                writeBufferEvents.add(event);
+            }
         } else {
             createBuffer(device, is.length * Platform.INT_SIZE, isPointer);
         }

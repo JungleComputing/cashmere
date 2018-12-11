@@ -36,7 +36,9 @@ public class BufferArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             DeviceEvent event = writeBuffer(device, writeQueue, buffer.capacity(), bufferPointer);
-            writeBufferEvents.add(event);
+            if (event != null) {
+                writeBufferEvents.add(event);
+            }
         } else {
             createBuffer(device, buffer.capacity(), bufferPointer);
         }

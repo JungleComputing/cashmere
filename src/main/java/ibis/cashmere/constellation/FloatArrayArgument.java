@@ -37,7 +37,9 @@ public class FloatArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             DeviceEvent event = writeBuffer(device, writeQueue, fs.length * Platform.FLOAT_SIZE, fsPointer);
-            writeBufferEvents.add(event);
+            if (event != null) {
+                writeBufferEvents.add(event);
+            }
         } else {
             createBuffer(device, fs.length * Platform.FLOAT_SIZE, fsPointer);
         }

@@ -37,7 +37,9 @@ public class DoubleArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             DeviceEvent event = writeBuffer(device, writeQueue, ds.length * Platform.DOUBLE_SIZE, dsPointer);
-            writeBufferEvents.add(event);
+            if (event != null) {
+                writeBufferEvents.add(event);
+            }
         } else {
             createBuffer(device, ds.length * Platform.DOUBLE_SIZE, dsPointer);
         }
