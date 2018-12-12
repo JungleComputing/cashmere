@@ -28,14 +28,14 @@ public interface LaunchFunction {
 
     /**
      * Launches a library function. This means that the <code>queue</code> should be used to enqueue the library function. The
-     * parameter <code>events_in_wait_list</code> will contain <code>num_events_in_wait_list</code> events that should finish
-     * before the library function can be executed. In <code>event</code> the library function should return the event on which
-     * other OpenCL commands should wait.
+     * parameter <code>events_in_wait_list</code> will contain the events that should finish before the library function can be
+     * executed. It should return the event indicating the end of the library function execution.
      *
      * @param queue
      *            the {@link CommandStream} with which library function executions can be enqueued
      * @param events_in_wait_list
      *            contains events that should finish before the library function is invoked.
+     * @return event indicating the end of the library function execution.
      */
     public DeviceEvent launch(CommandStream queue, DeviceEvent[] events_in_wait_list);
 

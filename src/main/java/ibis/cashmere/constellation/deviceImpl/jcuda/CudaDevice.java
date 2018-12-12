@@ -4,12 +4,11 @@ import static jcuda.driver.JCudaDriver.cuEventCreate;
 import static jcuda.driver.JCudaDriver.cuEventRecord;
 import static jcuda.driver.JCudaDriver.cuEventSynchronize;
 import static jcuda.driver.JCudaDriver.cuMemAlloc;
-import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
-import static jcuda.driver.JCudaDriver.cuMemcpyHtoD;
+import static jcuda.driver.JCudaDriver.cuMemcpyDtoHAsync;
+import static jcuda.driver.JCudaDriver.cuMemcpyHtoDAsync;
 import static jcuda.driver.JCudaDriver.cuModuleGetFunction;
 import static jcuda.driver.JCudaDriver.cuModuleLoadData;
 import static jcuda.driver.JCudaDriver.cuStreamCreate;
-import static jcuda.driver.JCudaDriver.cuStreamSynchronize;
 import static jcuda.driver.JCudaDriver.cuStreamWaitEvent;
 
 import java.io.File;
@@ -74,10 +73,12 @@ public class CudaDevice extends Device {
     }
 
     private int[] getMajorMinor(CUdevice device) {
-        // TODO: cuDeviceComputeCapability is apparently deprecated.
         final int[] major = new int[1];
         final int[] minor = new int[1];
-        JCudaDriver.cuDeviceComputeCapability(major, minor, device);
+        JCudaDriver.cuDeviceGetAttribute(major, jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                device);
+        JCudaDriver.cuDeviceGetAttribute(minor, jcuda.driver.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                device);
         final int[] result = new int[2];
         result[0] = major[0];
         result[1] = minor[0];
@@ -179,16 +180,16 @@ public class CudaDevice extends Device {
         // synchronize on the stream, and copy synchronously.
         // TODO: investigate!
 
-        cuStreamSynchronize(cuStream);
-        cuMemcpyHtoD(((CudaPointer) devicePtr).getPtr(), ((CudaPointer) hostPtr).getPointer(), size);
+        //        cuStreamSynchronize(cuStream);
+        //        cuMemcpyHtoD(((CudaPointer) devicePtr).getPtr(), ((CudaPointer) hostPtr).getPointer(), size);
+        //        return null;
 
-        return null;
-
-        //        // Insert event in the queue and return it, so that it can be waited for.
-        //        CUevent e = new CUevent();
-        //        cuEventCreate(e, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
-        //        cuEventRecord(e, cuStream);
-        //        return new CudaEvent(e);
+        cuMemcpyHtoDAsync(((CudaPointer) devicePtr).getPtr(), ((CudaPointer) hostPtr).getPointer(), size, cuStream);
+        // Insert event in the queue and return it, so that it can be waited for.
+        CUevent e = new CUevent();
+        cuEventCreate(e, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
+        cuEventRecord(e, cuStream);
+        return new CudaEvent(e);
     }
 
     @Override
@@ -204,16 +205,16 @@ public class CudaDevice extends Device {
         // synchronize on the stream, and copy synchronously.
         // TODO: investigate!
 
-        cuStreamSynchronize(cuStream);
-        cuMemcpyDtoH(((CudaPointer) hostPtr).getPointer(), ((CudaPointer) devicePtr).getPtr(), size);
+        //        cuStreamSynchronize(cuStream);
+        //        cuMemcpyDtoH(((CudaPointer) hostPtr).getPointer(), ((CudaPointer) devicePtr).getPtr(), size);
+        //        return null;
 
-        return null;
-
-        //        // Insert event in the queue and return it, so that it can be waited for.
-        //        CUevent e = new CUevent();
-        //        cuEventCreate(e, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
-        //        cuEventRecord(e, cuStream);
-        //        return new CudaEvent(e);
+        cuMemcpyDtoHAsync(((CudaPointer) hostPtr).getPointer(), ((CudaPointer) devicePtr).getPtr(), size, cuStream);
+        // Insert event in the queue and return it, so that it can be waited for.
+        CUevent e = new CUevent();
+        cuEventCreate(e, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
+        cuEventRecord(e, cuStream);
+        return new CudaEvent(e);
     }
 
     @Override
