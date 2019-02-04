@@ -1,6 +1,14 @@
 package ibis.cashmere.constellation.deviceAPI;
 
+/**
+ * Abstraction for a device or host pointer.
+ */
 public interface Pointer {
-    // Returns true on de-allocation from device.
+
+    /**
+     * Deallocation of device pointer.
+     * 
+     * @return <code>true</code> when in fact de-allocated.
+     */
     public boolean clean();
 }

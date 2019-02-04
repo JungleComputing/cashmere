@@ -25,14 +25,10 @@ import ibis.cashmere.constellation.Launch;
  */
 public abstract class KernelLaunch extends Launch {
 
-    // A OpenCLKernelLaunch can only be created from within the package
+    // A KernelLaunch can only be created from within the package or subclass.
     protected KernelLaunch(String kernelName, String threadName, Device device) {
         super(kernelName, threadName, device);
     }
-
-    /*
-     * Public methods
-     */
 
     /**
      * Launch the <code>Kernel</code> with the specified parameters. The launch will be a synchronous launch.
@@ -50,7 +46,7 @@ public abstract class KernelLaunch extends Launch {
      * @param blockZ
      *            the size of the block in the Z direction
      */
-    public void launch(int gridX, int gridY, int gridZ, int blockX, int blockY, int blockZ) {
+    public final void launch(int gridX, int gridY, int gridZ, int blockX, int blockY, int blockZ) {
         launch(gridX, gridY, gridZ, blockX, blockY, blockZ, true);
     }
 

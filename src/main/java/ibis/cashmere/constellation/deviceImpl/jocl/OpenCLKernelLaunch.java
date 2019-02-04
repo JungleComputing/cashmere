@@ -51,27 +51,6 @@ public class OpenCLKernelLaunch extends KernelLaunch {
      */
 
     /**
-     * Launch the <code>Kernel</code> with the specified parameters. The launch will be a synchronous launch.
-     *
-     * @param gridX
-     *            the size of the grid in the X direction
-     * @param gridY
-     *            the size of the grid in the Y direction
-     * @param gridZ
-     *            the size of the grid in the Z direction
-     * @param blockX
-     *            the size of the block in the X direction
-     * @param blockY
-     *            the size of the block in the Y direction
-     * @param blockZ
-     *            the size of the block in the Z direction
-     */
-    @Override
-    public void launch(int gridX, int gridY, int gridZ, int blockX, int blockY, int blockZ) {
-        launch(gridX, gridY, gridZ, blockX, blockY, blockZ, true);
-    }
-
-    /**
      * Launch the <code>Kernel</code> with the specified parameters.
      *
      * @param gridX

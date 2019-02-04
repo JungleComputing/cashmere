@@ -17,6 +17,13 @@ public interface Platform {
     public static final int DOUBLE_SIZE = 8;
     public static final int MEM_SIZE = 8;
 
+    /**
+     * Initializes the platform.
+     * 
+     * @param devices
+     *            all devices are added here.
+     * @param cashmere
+     */
     public void initializePlatform(Map<String, List<Device>> devices, Cashmere cashmere);
 
     public static Platform initializePlatform(Properties p, Map<String, List<Device>> devices, Cashmere cashmere) {
@@ -38,15 +45,55 @@ public interface Platform {
         return null;
     }
 
+    /**
+     * Returns the suffix of the platform at hand, i.e. ".cl" for OpenCL, ".cu" for Cuda.
+     * 
+     * @return the suffix
+     */
     public String getSuffix();
 
+    /**
+     * Creates a new Pointer to the given values.
+     * 
+     * @param a
+     *            the values.
+     * @return the pointer.
+     */
     public Pointer toPointer(byte[] a);
 
+    /**
+     * Creates a new Pointer to the given buffer.
+     * 
+     * @param b
+     *            the buffer.
+     * @return the pointer.
+     */
     public Pointer toPointer(Buffer b);
 
+    /**
+     * Creates a new Pointer to the given values.
+     * 
+     * @param a
+     *            the values.
+     * @return the pointer.
+     */
     public Pointer toPointer(int[] a);
 
+    /**
+     * Creates a new Pointer to the given values.
+     * 
+     * @param a
+     *            the values.
+     * @return the pointer.
+     */
     public Pointer toPointer(float[] a);
 
+    /**
+     * Creates a new Pointer to the given values.
+     * 
+     * @param a
+     *            the values.
+     * @return the pointer.
+     */
     public Pointer toPointer(double[] a);
 }
