@@ -12,8 +12,10 @@ public interface DeviceEvent {
     };
 
     public static void retainEvents(DeviceEvent[] events) {
-        for (DeviceEvent e : events) {
-            e.retain();
+        if (events != null) {
+            for (DeviceEvent e : events) {
+                e.retain();
+            }
         }
     }
 
