@@ -55,8 +55,8 @@ public class OpenCLDevice extends Device {
     // To compare against ...
     private static cl_event null_event = new cl_event();
 
-    private cl_device_id deviceID;
-    private cl_context context;
+    private final cl_device_id deviceID;
+    private final cl_context context;
 
     // the programs compiled for this Device
     private Map<String, cl_program> kernels = new HashMap<String, cl_program>();
@@ -109,6 +109,10 @@ public class OpenCLDevice extends Device {
         // writeBinary(program, nameKernel, info.name);
 
         logger.info("Registered kernel " + nameKernel + " on device " + info.getNickName());
+    }
+
+    public cl_context getContext() {
+        return context;
     }
 
     /*
