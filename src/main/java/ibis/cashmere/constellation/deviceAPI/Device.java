@@ -127,7 +127,6 @@ public abstract class Device implements Comparable<Device> {
         this.cashmere = cashmere;
 
         this.info = info;
-        measureTimeOffset();
 
         readBufferEventsMap = new HashMap<String, ArrayList<DeviceEvent>>();
 
@@ -179,8 +178,6 @@ public abstract class Device implements Comparable<Device> {
     public abstract Pointer createBuffer(Argument.Direction d, long size);
 
     public abstract void addKernel(String kernelSource);
-
-    protected abstract void measureTimeOffset();
 
     /*
      * General device management

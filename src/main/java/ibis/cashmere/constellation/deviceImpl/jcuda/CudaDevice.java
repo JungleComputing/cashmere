@@ -69,6 +69,7 @@ public class CudaDevice extends Device {
 
         this.architecture = "compute_" + cc[0] + "" + cc[1];
         this.capability = "sm_" + cc[0] + "" + cc[1];
+        measureTimeOffset();
 
     }
 
@@ -157,8 +158,7 @@ public class CudaDevice extends Device {
         return processOutput;
     }
 
-    @Override
-    protected void measureTimeOffset() {
+    void measureTimeOffset() {
         CUstream cuStream = ((CudaCommandStream) getExecuteQueue()).getQueue();
         CUevent execEvent = new CUevent();
         cuEventCreate(execEvent, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);

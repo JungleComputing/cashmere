@@ -77,6 +77,7 @@ public class OpenCLDevice extends Device {
         setWriteQueue(new OpenCLCommandStream(clCreateCommandQueueWithProperties(context, device, queueProperties, null)));
         setExecuteQueue(new OpenCLCommandStream(clCreateCommandQueueWithProperties(context, device, queueProperties, null)));
         setReadQueue(new OpenCLCommandStream(clCreateCommandQueueWithProperties(context, device, queueProperties, null)));
+        measureTimeOffset();
     }
 
     @Override
@@ -234,8 +235,7 @@ public class OpenCLDevice extends Device {
         return new OpenCLKernelLaunch(name, threadname, this);
     }
 
-    @Override
-    protected void measureTimeOffset() {
+    void measureTimeOffset() {
         float f[] = { 0.0f };
         org.jocl.Pointer fPointer = org.jocl.Pointer.to(f);
         cl_mem memObject = clCreateBuffer(context, CL_MEM_READ_WRITE, Sizeof.cl_float, null, null);
