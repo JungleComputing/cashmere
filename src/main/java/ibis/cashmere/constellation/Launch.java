@@ -541,8 +541,6 @@ public abstract class Launch {
 
     private void cleanAsynchronousArguments() {
         DeviceEvent[] readBufferEventsArray = readBufferEvents.toArray(new DeviceEvent[readBufferEvents.size()]);
-        device.waitEvents(readBufferEventsArray);
-
         if (readBufferEventsArray.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("finish: read buffer events to wait for: " + Arrays.toString(readBufferEventsArray));
