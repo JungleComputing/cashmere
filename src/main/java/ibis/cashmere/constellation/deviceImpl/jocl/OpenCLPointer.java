@@ -63,7 +63,7 @@ public class OpenCLPointer implements Pointer {
         return clmem;
     }
 
-    org.jocl.Pointer getPointer() {
+    public org.jocl.Pointer getPointer() {
         return clPointer;
     }
 }

@@ -89,7 +89,7 @@ public class OpenCLEvent implements DeviceEvent {
         return event.hashCode();
     }
 
-    cl_event getCLEvent() {
+    public cl_event getCLEvent() {
         return event;
     }
 }
