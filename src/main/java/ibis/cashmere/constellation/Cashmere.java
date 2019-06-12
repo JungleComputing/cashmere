@@ -152,7 +152,7 @@ public class Cashmere {
      * @see #initialize(ConstellationConfiguration[], Properties, Map, int, int) initialize
      */
     public static void initialize(ConstellationConfiguration[] config, Properties props,
-            HashMap<String, List<String>> kernelDefines) throws ConstellationCreationException {
+            Map<String, List<String>> kernelDefines) throws ConstellationCreationException {
 
         initialize(config, props, kernelDefines, 0, 0);
     }
