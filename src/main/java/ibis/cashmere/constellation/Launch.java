@@ -554,6 +554,13 @@ public abstract class Launch {
     }
 
     private void cleanAsynchronousArguments() {
+
+        for (Argument a : argsToClean) {
+            if (!a.readScheduled()) {
+                a.scheduleReads(null, readBufferEvents, true);
+            }
+        }
+
         cl_event[] readBufferEventsArray = readBufferEvents.toArray(new cl_event[readBufferEvents.size()]);
 
         if (readBufferEventsArray.length > 0) {

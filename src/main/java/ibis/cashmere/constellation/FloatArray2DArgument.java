@@ -61,7 +61,7 @@ class FloatArray2DArgument extends FloatArrayArgument {
 
     @Override
     void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
-        super.scheduleReads(waitListEvents, readBufferEvents, async);
+        super.scheduleReads(waitListEvents, readBufferEvents, false);
         fs2D = null;
     }
 }

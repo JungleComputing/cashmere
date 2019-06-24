@@ -172,7 +172,6 @@ public class Argument {
     cl_event writeBufferNoCreateBuffer(cl_context context, cl_command_queue q, final cl_event[] waitEvents, long size,
             Pointer hostPtr) {
 
-        cl_event event = new cl_event();
         int nEvents = 0;
         if (waitEvents != null) {
             nEvents = waitEvents.length;
@@ -196,9 +195,11 @@ public class Argument {
 
         final int nEventsFinal = nEvents;
         // Can only be asynchronous with direct byte buffers.
-        final boolean asynchronous = this instanceof BufferArgument;
-        device.withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, asynchronous ? CL_FALSE : CL_TRUE, 0, size, hostPtr, nEventsFinal,
-                (nEventsFinal == 0) ? null : waitEvents, event));
+        final boolean asynchronous = this instanceof BufferArgument && ((BufferArgument) this).isDirect();
+
+        cl_event event = asynchronous ? new cl_event() : null;
+        device.withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, asynchronous ? CL_FALSE : CL_TRUE, 0, size, hostPtr,
+                nEventsFinal, (nEventsFinal == 0) ? null : waitEvents, event));
         if (eventLogger.isDebugEnabled()) {
             Event.nrEvents.incrementAndGet();
             eventLogger.debug("performing a writeBuffer with new event: {}, depends on {} (retained)", event, waitEvents);
@@ -249,17 +250,20 @@ public class Argument {
         Device device = Device.getDevice(context);
         final int nEventsFinal = nEvents;
         final cl_event[] eventsFinal = events;
-        final boolean asynchronous = asynch && this instanceof BufferArgument;
+        final boolean asynchronous = asynch && this instanceof BufferArgument && ((BufferArgument) this).isDirect();
         device.withAllocationError(() -> clEnqueueReadBuffer(q, memObject, asynchronous ? CL_FALSE : CL_TRUE, 0, size, hostPtr,
-                nEventsFinal, (nEventsFinal == 0) ? null : eventsFinal, event));
+                nEventsFinal, (nEventsFinal == 0) ? null : eventsFinal, asynchronous ? event : null));
+
+        if (!asynchronous || event.equals(null_event)) {
+            // No initialized event returned.
+            return null;
+        }
+
         if (eventLogger.isDebugEnabled()) {
             Event.nrEvents.incrementAndGet();
             eventLogger.debug("performing a readBuffer with new event: {}, depends on {} (retained)", event, eventsFinal);
         }
-        if (event.equals(null_event)) {
-            // No initialized event returned.
-            return null;
-        }
+
         // Event.showEvents(waitEvents);
         // Event.showEvent(event);
         return event;

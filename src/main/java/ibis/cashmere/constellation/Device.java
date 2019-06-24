@@ -498,8 +498,10 @@ public class Device implements Comparable<Device> {
                     throw new Error("Inconsistency in writeEventsPointers");
                 }
             }
-            writeEventsPointers.put(to, writePointerEvent);
-            writeEventsPointersInversed.put(writePointerEvent, to);
+            if (writePointerEvent != null) {
+                writeEventsPointers.put(to, writePointerEvent);
+                writeEventsPointersInversed.put(writePointerEvent, to);
+            }
         }
     }
 

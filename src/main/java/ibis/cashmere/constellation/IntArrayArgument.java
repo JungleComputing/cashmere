@@ -38,7 +38,7 @@ class IntArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             cl_event event = writeBuffer(context, writeQueue, is.length * Sizeof.cl_int, isPointer);
-            writeBufferEvents.add(event);
+            assert (event == null);
         } else {
             createBuffer(context, is.length * Sizeof.cl_int, isPointer);
         }
@@ -47,7 +47,7 @@ class IntArrayArgument extends ArrayArgument {
     @Override
     void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, is.length * Sizeof.cl_int, Pointer.to(is), async);
+            cl_event event = readBuffer(context, readQueue, waitListEvents, is.length * Sizeof.cl_int, Pointer.to(is), false);
             if (event != null) {
                 readBufferEvents.add(event);
             }

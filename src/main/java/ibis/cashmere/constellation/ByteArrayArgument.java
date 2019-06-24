@@ -38,7 +38,7 @@ class ByteArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             cl_event event = writeBuffer(context, writeQueue, bs.length * Sizeof.cl_char, bsPointer);
-            writeBufferEvents.add(event);
+            assert (event == null);
         } else {
             createBuffer(context, bs.length * Sizeof.cl_char, bsPointer);
         }
@@ -48,7 +48,7 @@ class ByteArrayArgument extends ArrayArgument {
     void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
 
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, bs.length * Sizeof.cl_char, Pointer.to(bs), async);
+            cl_event event = readBuffer(context, readQueue, waitListEvents, bs.length * Sizeof.cl_char, Pointer.to(bs), false);
             if (event != null) {
                 readBufferEvents.add(event);
             }

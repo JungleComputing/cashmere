@@ -37,7 +37,7 @@ class FloatArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             cl_event event = writeBuffer(context, writeQueue, fs.length * Sizeof.cl_float, fsPointer);
-            writeBufferEvents.add(event);
+            assert (event == null);
         } else {
             createBuffer(context, fs.length * Sizeof.cl_float, fsPointer);
         }
@@ -47,7 +47,7 @@ class FloatArrayArgument extends ArrayArgument {
     void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
 
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, fs.length * Sizeof.cl_float, Pointer.to(fs), async);
+            cl_event event = readBuffer(context, readQueue, waitListEvents, fs.length * Sizeof.cl_float, Pointer.to(fs), false);
             if (event != null) {
                 readBufferEvents.add(event);
             }

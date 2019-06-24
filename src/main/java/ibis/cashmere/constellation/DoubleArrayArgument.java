@@ -37,7 +37,7 @@ class DoubleArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             cl_event event = writeBuffer(context, writeQueue, ds.length * Sizeof.cl_double, dsPointer);
-            writeBufferEvents.add(event);
+            assert (event == null);
         } else {
             createBuffer(context, ds.length * Sizeof.cl_double, dsPointer);
         }
@@ -46,7 +46,7 @@ class DoubleArrayArgument extends ArrayArgument {
     @Override
     void scheduleReads(ArrayList<cl_event> waitListEvents, ArrayList<cl_event> readBufferEvents, boolean async) {
         if (direction == Direction.OUT || direction == Direction.INOUT) {
-            cl_event event = readBuffer(context, readQueue, waitListEvents, ds.length * Sizeof.cl_double, Pointer.to(ds), async);
+            cl_event event = readBuffer(context, readQueue, waitListEvents, ds.length * Sizeof.cl_double, Pointer.to(ds), false);
             if (event != null) {
                 readBufferEvents.add(event);
             }

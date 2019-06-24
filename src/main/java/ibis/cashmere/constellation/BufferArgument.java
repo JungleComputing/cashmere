@@ -36,7 +36,9 @@ class BufferArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             cl_event event = writeBuffer(context, writeQueue, buffer.capacity(), bufferPointer);
-            writeBufferEvents.add(event);
+            if (event != null) {
+                writeBufferEvents.add(event);
+            }
         } else {
             createBuffer(context, buffer.capacity(), bufferPointer);
         }
@@ -51,7 +53,7 @@ class BufferArgument extends ArrayArgument {
 
         if (direction == Direction.OUT || direction == Direction.INOUT) {
             cl_event event = readBuffer(context, readQueue, waitListEvents, buffer.capacity(), Pointer.to(buffer.byteBuffer),
-                    async);
+                    isDirect() ? async : false);
             if (event != null) {
                 readBufferEvents.add(event);
             }
