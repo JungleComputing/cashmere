@@ -194,10 +194,10 @@ public class Argument {
 
         Device device = Device.getDevice(context);
 
-        Event.retainEvents(waitEvents);
-
         final int nEventsFinal = nEvents;
-        device.withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, CL_FALSE, 0, size, hostPtr, nEventsFinal,
+        // Can only be asynchronous with direct byte buffers.
+        final boolean asynchronous = this instanceof BufferArgument;
+        device.withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, asynchronous ? CL_FALSE : CL_TRUE, 0, size, hostPtr, nEventsFinal,
                 (nEventsFinal == 0) ? null : waitEvents, event));
         if (eventLogger.isDebugEnabled()) {
             Event.nrEvents.incrementAndGet();
@@ -241,7 +241,6 @@ public class Argument {
             nEvents = waitEvents.size();
             events = new cl_event[nEvents];
             events = waitEvents.toArray(events);
-            Event.retainEvents(events);
             if (logger.isDebugEnabled()) {
                 logger.debug("readBuffer: events to wait for: " + Arrays.toString(events));
             }
@@ -250,7 +249,8 @@ public class Argument {
         Device device = Device.getDevice(context);
         final int nEventsFinal = nEvents;
         final cl_event[] eventsFinal = events;
-        device.withAllocationError(() -> clEnqueueReadBuffer(q, memObject, asynch ? CL_FALSE : CL_TRUE, 0, size, hostPtr,
+        final boolean asynchronous = asynch && this instanceof BufferArgument;
+        device.withAllocationError(() -> clEnqueueReadBuffer(q, memObject, asynchronous ? CL_FALSE : CL_TRUE, 0, size, hostPtr,
                 nEventsFinal, (nEventsFinal == 0) ? null : eventsFinal, event));
         if (eventLogger.isDebugEnabled()) {
             Event.nrEvents.incrementAndGet();
@@ -263,5 +263,9 @@ public class Argument {
         // Event.showEvents(waitEvents);
         // Event.showEvent(event);
         return event;
+    }
+
+    public Direction getDirection() {
+        return direction;
     }
 }

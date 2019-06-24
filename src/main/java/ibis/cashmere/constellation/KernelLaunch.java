@@ -92,8 +92,6 @@ public class KernelLaunch extends Launch {
         cl_event event = new cl_event();
         final cl_event[] wbeArray = writeBufferEvents.toArray(new cl_event[writeBufferEvents.size()]);
 
-        Event.retainEvents(wbeArray);
-
         if (logger.isTraceEnabled()) {
             logger.debug("Launch: events to wait for: " + Arrays.toString(wbeArray));
             ThreadPool.createNew(new Thread() {

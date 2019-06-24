@@ -446,6 +446,7 @@ public abstract class Launch {
 
     private static void cleanLaunches(int nrLaunchesToRetain) {
         int nrLaunchesToClean = Math.max(launches.get().size() - nrLaunchesToRetain, 0);
+        logger.debug("cleanLaunches: nrLaunchesToClean = " + nrLaunchesToClean);
         for (int i = 0; i < nrLaunchesToClean; i++) {
             Launch l = launches.get().pollFirst();
             l.clean();
@@ -562,9 +563,7 @@ public abstract class Launch {
             clWaitForEvents(readBufferEventsArray.length, readBufferEventsArray);
         }
         for (Argument a : argsToClean) {
-            if (a.readScheduled()) {
-                a.clean();
-            }
+            a.clean();
         }
     }
 
