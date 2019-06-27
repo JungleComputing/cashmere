@@ -146,12 +146,6 @@ task copyJavadoc(type: Copy) {
 	dependsOn 'javadoc'
 }
 
-jar {
-    from('src/main/java/example/kmeans') {
-	include '*.cl'
-    }
-}
-
 distZip.dependsOn jar
 distTar.dependsOn jar
 installDist.dependsOn jar
