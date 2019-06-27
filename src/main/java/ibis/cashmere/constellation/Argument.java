@@ -242,6 +242,7 @@ public class Argument {
             nEvents = waitEvents.size();
             events = new cl_event[nEvents];
             events = waitEvents.toArray(events);
+            Event.retainEvents(events);
             if (logger.isDebugEnabled()) {
                 logger.debug("readBuffer: events to wait for: " + Arrays.toString(events));
             }
