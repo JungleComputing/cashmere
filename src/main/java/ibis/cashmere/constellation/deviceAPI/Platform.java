@@ -5,11 +5,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ibis.cashmere.constellation.Cashmere;
 import ibis.cashmere.constellation.deviceImpl.jcuda.CudaPlatform;
 import ibis.cashmere.constellation.deviceImpl.jocl.OpenCLPlatform;
 
 public interface Platform {
+
+    /*
+     * loggers
+     */
+    public static final Logger logger = LoggerFactory.getLogger("ibis.cashmere.constellation.Platform");
+
 
     // TODO: add API for sizes?
     public static final int INT_SIZE = 4;
@@ -23,6 +32,7 @@ public interface Platform {
      * @param devices
      *            all devices are added here.
      * @param cashmere
+     *            the cashmere instance.
      */
     public void initializePlatform(Map<String, List<Device>> devices, Cashmere cashmere);
 

@@ -42,7 +42,7 @@ public class CudaKernelLaunch extends KernelLaunch {
             cuStreamWaitEvent(cuStream, ((CudaEvent) writeBufferEvents.get(i)).getEvent(), 0);
         }
 
-        cuLaunchKernel(kernel, gridX, gridY, gridZ, blockX, blockY, blockZ, 0, cuStream, Pointer.to(params), null);
+        cuLaunchKernel(kernel, gridX/blockX, gridY/blockY, gridZ/blockZ, blockX, blockY, blockZ, 0, cuStream, Pointer.to(params), null);
 
         // create an execute event.
 
@@ -63,6 +63,7 @@ public class CudaKernelLaunch extends KernelLaunch {
 
     @Override
     protected void setArgument(int size, Argument arg) {
+        logger.debug("args(" + args.size() + " = " + ((CudaPointer) arg.getPointer()).cuPointer);
         args.add(((CudaPointer) arg.getPointer()).cuPointer);
     }
 }

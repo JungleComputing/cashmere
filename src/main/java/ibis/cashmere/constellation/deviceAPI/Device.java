@@ -161,7 +161,7 @@ public abstract class Device implements Comparable<Device> {
         this.memoryReserved = 0;
     }
 
-    public abstract DeviceEvent writeNoCreateBuffer(CommandStream q, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
+    public abstract DeviceEvent writeNoCreateBuffer(CommandStream q, DeviceEvent[] waitEvents, boolean async, long size, Pointer hostPtr,
             Pointer devicePtr);
 
     public abstract DeviceEvent enqueueReadBuffer(CommandStream q, boolean asynch, DeviceEvent[] waitEvents, long size,
@@ -177,7 +177,7 @@ public abstract class Device implements Comparable<Device> {
 
     public abstract Pointer createBuffer(Argument.Direction d, long size);
 
-    public abstract void addKernel(String kernelSource);
+    public abstract void addKernel(String kernelSource, String fileName);
 
     /*
      * General device management

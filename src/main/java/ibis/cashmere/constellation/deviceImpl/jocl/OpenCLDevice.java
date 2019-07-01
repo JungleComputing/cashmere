@@ -81,7 +81,7 @@ public class OpenCLDevice extends Device {
     }
 
     @Override
-    public void addKernel(String kernelSource) {
+    public void addKernel(String kernelSource, String filename) {
         cl_program program = clCreateProgramWithSource(context, 1, new String[] { kernelSource },
                 new long[] { kernelSource.length() }, null);
 
@@ -155,15 +155,14 @@ public class OpenCLDevice extends Device {
     }
 
     @Override
-    public DeviceEvent writeNoCreateBuffer(CommandStream stream, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
+    public DeviceEvent writeNoCreateBuffer(CommandStream stream, DeviceEvent[] waitEvents, boolean async, long size, Pointer hostPtr,
             Pointer devicePtr) {
-        cl_event event = new cl_event();
         final int nEvents = waitEvents != null ? waitEvents.length : 0;
-        final cl_event[] wEvents = new cl_event[nEvents];
-        for (int i = 0; i < nEvents; i++) {
-            wEvents[i] = ((OpenCLEvent) waitEvents[i]).getCLEvent();
-        }
+        final cl_event[] wEvents = nEvents == 0 ? null : new cl_event[nEvents];
         if (nEvents > 0) {
+            for (int i = 0; i < nEvents; i++) {
+                wEvents[i] = ((OpenCLEvent) waitEvents[i]).getCLEvent();
+            }
             if (logger.isDebugEnabled()) {
                 logger.debug("WriteBuffer: events to wait for: " + Arrays.toString(waitEvents));
             }
@@ -176,14 +175,20 @@ public class OpenCLDevice extends Device {
                     }
                 }, "test event waiter");
             }
+            DeviceEvent.retainEvents(waitEvents);
         }
 
         cl_command_queue q = ((OpenCLCommandStream) stream).getQueue();
-        DeviceEvent.retainEvents(waitEvents);
         cl_mem memObject = ((OpenCLPointer) devicePtr).getCLMem();
 
-        withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, CL_FALSE, 0, size, ((OpenCLPointer) hostPtr).getPointer(),
+        cl_event event = async ? new cl_event() : null;
+        withAllocationError(() -> clEnqueueWriteBuffer(q, memObject, async ? CL_FALSE : CL_TRUE, 0, size, ((OpenCLPointer) hostPtr).getPointer(),
                 nEvents, (nEvents == 0) ? null : wEvents, event));
+
+        if (event == null) {
+            return null;
+        }
+
         if (logger.isDebugEnabled()) {
             logger.debug("performing a writeBuffer with new event: {}, depends on {} (retained)", event, waitEvents);
         }

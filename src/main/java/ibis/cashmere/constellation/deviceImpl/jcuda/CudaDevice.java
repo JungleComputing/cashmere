@@ -1,14 +1,19 @@
 package ibis.cashmere.constellation.deviceImpl.jcuda;
 
+import static jcuda.driver.JCudaDriver.cuCtxCreate;
+import static jcuda.driver.JCudaDriver.cuCtxSetCurrent;
 import static jcuda.driver.JCudaDriver.cuEventCreate;
 import static jcuda.driver.JCudaDriver.cuEventRecord;
 import static jcuda.driver.JCudaDriver.cuEventSynchronize;
 import static jcuda.driver.JCudaDriver.cuMemAlloc;
+import static jcuda.driver.JCudaDriver.cuMemcpyDtoH;
 import static jcuda.driver.JCudaDriver.cuMemcpyDtoHAsync;
+import static jcuda.driver.JCudaDriver.cuMemcpyHtoD;
 import static jcuda.driver.JCudaDriver.cuMemcpyHtoDAsync;
 import static jcuda.driver.JCudaDriver.cuModuleGetFunction;
 import static jcuda.driver.JCudaDriver.cuModuleLoadData;
 import static jcuda.driver.JCudaDriver.cuStreamCreate;
+import static jcuda.driver.JCudaDriver.cuStreamSynchronize;
 import static jcuda.driver.JCudaDriver.cuStreamWaitEvent;
 
 import java.io.File;
@@ -50,9 +55,14 @@ public class CudaDevice extends Device {
 
     private String capability;
 
+    private ThreadLocal<Integer> threadLocal = ThreadLocal.withInitial(() -> 0);
+
     public CudaDevice(CUdevice device, Cashmere cashmere) {
         super(cashmere, CudaInfo.getDeviceInfo(device));
+
         ctxt = new CUcontext();
+        cuCtxCreate(ctxt, 0, device);
+
         CUstream stream;
 
         stream = new CUstream();
@@ -87,7 +97,18 @@ public class CudaDevice extends Device {
         return result;
     }
 
+    private void checkContext() {
+        Integer result = threadLocal.get();
+        logger.debug("checkContext: result = " + result);
+        if (result == 0) {
+            logger.debug("Setting context");
+            cuCtxSetCurrent(ctxt);
+            threadLocal.set(new Integer(1));
+        }
+    }
+
     private CUdeviceptr alloc(long size) {
+        checkContext();
         CUdeviceptr ptr = new CUdeviceptr();
         cuMemAlloc(ptr, size);
         return ptr;
@@ -100,12 +121,13 @@ public class CudaDevice extends Device {
     }
 
     @Override
-    public void addKernel(String kernelSource) {
+    public void addKernel(String kernelSource, String name) {
         CUmodule module = new CUmodule();
+        logger.debug("Adding a kernel for Cuda, name = " + name);
         try {
-            byte[] cubin = compileCuSourceToCubin(kernelSource, "-gencode=arch=" + architecture + ",code=" + capability);
+            byte[] cubin = compileCuSourceToCubin(kernelSource, "-lineinfo", "-gencode=arch=" + architecture + ",code=" + capability);
             cuModuleLoadData(module, cubin);
-            String kernelName = kernelSource.substring(0, kernelSource.lastIndexOf(".cu"));
+            String kernelName = name.substring(0, name.lastIndexOf(".cu"));
             CUfunction f = new CUfunction();
             cuModuleGetFunction(f, module, kernelName);
             kernels.put(kernelName, f);
@@ -159,6 +181,7 @@ public class CudaDevice extends Device {
     }
 
     void measureTimeOffset() {
+        checkContext();
         CUstream cuStream = ((CudaCommandStream) getExecuteQueue()).getQueue();
         CUevent execEvent = new CUevent();
         cuEventCreate(execEvent, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
@@ -168,22 +191,28 @@ public class CudaDevice extends Device {
     }
 
     @Override
-    public DeviceEvent writeNoCreateBuffer(CommandStream q, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
+    public DeviceEvent writeNoCreateBuffer(CommandStream q, DeviceEvent[] waitEvents, boolean async, long size, Pointer hostPtr,
             Pointer devicePtr) {
+        checkContext();
         CUstream cuStream = ((CudaCommandStream) q).getQueue();
         // insert waits for the wait events
-        for (DeviceEvent evnt : waitEvents) {
-            cuStreamWaitEvent(cuStream, ((CudaEvent) evnt).getEvent(), 0);
+        if (waitEvents != null) {
+            for (DeviceEvent evnt : waitEvents) {
+                cuStreamWaitEvent(cuStream, ((CudaEvent) evnt).getEvent(), 0);
+            }
         }
+
 
         // Asynchronous writes require page-pinned memory, which we don't have. So, instead, we
         // synchronize on the stream, and copy synchronously.
         // TODO: investigate!
 
-        //        cuStreamSynchronize(cuStream);
-        //        cuMemcpyHtoD(((CudaPointer) devicePtr).getPtr(), ((CudaPointer) hostPtr).getPointer(), size);
-        //        return null;
-
+        if (! async) {
+            cuStreamSynchronize(cuStream);
+            logger.debug("Deviceptr = " + ((CudaPointer) devicePtr).getPtr() + ", host ptr = " + ((CudaPointer) hostPtr).getPointer());
+            cuMemcpyHtoD(((CudaPointer) devicePtr).getPtr(), ((CudaPointer) hostPtr).getPointer(), size);
+            return null;
+        }
         cuMemcpyHtoDAsync(((CudaPointer) devicePtr).getPtr(), ((CudaPointer) hostPtr).getPointer(), size, cuStream);
         // Insert event in the queue and return it, so that it can be waited for.
         CUevent e = new CUevent();
@@ -193,21 +222,26 @@ public class CudaDevice extends Device {
     }
 
     @Override
-    public DeviceEvent enqueueReadBuffer(CommandStream q, boolean asynch, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
+    public DeviceEvent enqueueReadBuffer(CommandStream q, boolean async, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
             Pointer devicePtr) {
+        checkContext();
         CUstream cuStream = ((CudaCommandStream) q).getQueue();
         // insert waits for the wait events
-        for (DeviceEvent evnt : waitEvents) {
-            cuStreamWaitEvent(cuStream, ((CudaEvent) evnt).getEvent(), 0);
+        if (waitEvents != null) {
+            for (DeviceEvent evnt : waitEvents) {
+                cuStreamWaitEvent(cuStream, ((CudaEvent) evnt).getEvent(), 0);
+            }
         }
 
         // Asynchronous writes require page-pinned memory, which we don't have. So, instead, we
         // synchronize on the stream, and copy synchronously.
         // TODO: investigate!
 
-        //        cuStreamSynchronize(cuStream);
-        //        cuMemcpyDtoH(((CudaPointer) hostPtr).getPointer(), ((CudaPointer) devicePtr).getPtr(), size);
-        //        return null;
+        if (! async) {
+            cuStreamSynchronize(cuStream);
+            cuMemcpyDtoH(((CudaPointer) hostPtr).getPointer(), ((CudaPointer) devicePtr).getPtr(), size);
+            return null;
+        }
 
         cuMemcpyDtoHAsync(((CudaPointer) hostPtr).getPointer(), ((CudaPointer) devicePtr).getPtr(), size, cuStream);
         // Insert event in the queue and return it, so that it can be waited for.
@@ -228,14 +262,20 @@ public class CudaDevice extends Device {
 
     @Override
     public void waitEvents(DeviceEvent[] waitEvents) {
-        for (DeviceEvent evnt : waitEvents) {
-            CUevent e = ((CudaEvent) evnt).getEvent();
-            cuEventSynchronize(e);
+        if (waitEvents != null) {
+            checkContext();
+            for (DeviceEvent evnt : waitEvents) {
+                CUevent e = ((CudaEvent) evnt).getEvent();
+                if (e != null) {
+                    cuEventSynchronize(e);
+                }
+            }
         }
     }
 
     @Override
     public KernelLaunch createLaunch(String name, String threadname) {
+        checkContext();
         return new CudaKernelLaunch(name, threadname, this);
     }
 

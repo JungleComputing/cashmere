@@ -37,9 +37,7 @@ public class ByteArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             DeviceEvent event = writeBuffer(device, writeQueue, bs.length, bsPointer);
-            if (event != null) {
-                writeBufferEvents.add(event);
-            }
+            assert(event == null);
         } else {
             createBuffer(device, bs.length, bsPointer);
         }
@@ -51,9 +49,7 @@ public class ByteArrayArgument extends ArrayArgument {
         if (direction == Direction.OUT || direction == Direction.INOUT) {
             DeviceEvent event = readBuffer(device, readQueue, waitListEvents, bs.length,
                     Cashmere.cashmere.getPlatform().toPointer(bs), async);
-            if (event != null) {
-                readBufferEvents.add(event);
-            }
+            assert(event == null);
         }
     }
 

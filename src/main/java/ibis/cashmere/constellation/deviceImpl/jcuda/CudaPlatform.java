@@ -28,6 +28,7 @@ public class CudaPlatform implements Platform {
             cuDeviceGet(dev, i);
             Device d = new CudaDevice(dev, cashmere);
             String deviceName = d.getName();
+            logger.debug("Device name = " + deviceName);
             if (!deviceName.equals("unknown")) {
                 List<Device> l = devices.get(deviceName);
                 if (l == null) {

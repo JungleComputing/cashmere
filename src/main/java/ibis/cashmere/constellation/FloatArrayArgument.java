@@ -37,9 +37,7 @@ public class FloatArrayArgument extends ArrayArgument {
 
         if (d == Direction.IN || d == Direction.INOUT) {
             DeviceEvent event = writeBuffer(device, writeQueue, fs.length * Platform.FLOAT_SIZE, fsPointer);
-            if (event != null) {
-                writeBufferEvents.add(event);
-            }
+            assert(event == null);
         } else {
             createBuffer(device, fs.length * Platform.FLOAT_SIZE, fsPointer);
         }
@@ -51,9 +49,7 @@ public class FloatArrayArgument extends ArrayArgument {
         if (direction == Direction.OUT || direction == Direction.INOUT) {
             DeviceEvent event = readBuffer(device, readQueue, waitListEvents, fs.length * Platform.FLOAT_SIZE,
                     Cashmere.cashmere.getPlatform().toPointer(fs), async);
-            if (event != null) {
-                readBufferEvents.add(event);
-            }
+            assert(event == null);
         }
     }
 

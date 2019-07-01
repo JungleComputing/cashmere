@@ -28,6 +28,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ibis.cashmere.constellation.Argument;
 import ibis.cashmere.constellation.deviceAPI.CommandStream;
 import ibis.cashmere.constellation.deviceAPI.Device;
 import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
@@ -540,6 +541,11 @@ public abstract class Launch {
     }
 
     private void cleanAsynchronousArguments() {
+        for (Argument a : argsToClean) {
+            if (!a.readScheduled()) {
+                a.scheduleReads(null, readBufferEvents, true);
+            }
+        }
         DeviceEvent[] readBufferEventsArray = readBufferEvents.toArray(new DeviceEvent[readBufferEvents.size()]);
         if (readBufferEventsArray.length > 0) {
             if (logger.isDebugEnabled()) {
@@ -548,9 +554,7 @@ public abstract class Launch {
             device.waitEvents(readBufferEventsArray);
         }
         for (Argument a : argsToClean) {
-            if (a.readScheduled()) {
-                a.clean();
-            }
+            a.clean();
         }
     }
 

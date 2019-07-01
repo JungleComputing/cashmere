@@ -541,6 +541,7 @@ public class Cashmere {
                             throw new Error("Something wrong while reading " + "kernel " + ze.getName());
                         }
                     }
+                    logger.debug("Found kernel " + ze.getName() + " with size " + bytes.length);
                     kernelSources.put(ze.getName(), new String(bytes));
                 }
             }
@@ -613,7 +614,7 @@ public class Cashmere {
                     logger.warn("{} not available on this machine", deviceName);
                 } else {
                     for (Device device : list) {
-                        device.addKernel(kernelSource);
+                        device.addKernel(kernelSource, k);
                     }
                 }
             }
@@ -709,7 +710,7 @@ public class Cashmere {
 
         for (List<Device> list : deviceCollection) {
             for (Device device : list) {
-
+                logger.debug("Found device: " + device.getName());
                 if (device.registeredKernel(name)) {
                     KernelDevice d = new KernelDevice(name, device);
                     if (kernelSpeeds.get(d) == null) {

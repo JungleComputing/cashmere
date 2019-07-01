@@ -113,6 +113,10 @@ public class Argument {
         return pointer;
     }
 
+    public Direction getDirection() {
+        return direction;
+    }
+
     public void createBuffer(Device device, long size, Pointer hostPtr) {
 
         pointer = device.createBuffer(direction, size);
@@ -135,7 +139,8 @@ public class Argument {
     public DeviceEvent writeBufferNoCreateBuffer(Device device, CommandStream q, final DeviceEvent[] waitEvents, long size,
             Pointer hostPtr) {
 
-        return device.writeNoCreateBuffer(q, waitEvents, size, hostPtr, pointer);
+        boolean async = this instanceof BufferArgument && ((BufferArgument) this).isDirect();
+        return device.writeNoCreateBuffer(q, waitEvents, async, size, hostPtr, pointer);
     }
 
     boolean readScheduled() {
@@ -171,6 +176,7 @@ public class Argument {
             }
         }
 
-        return device.enqueueReadBuffer(q, asynch, events, size, hostPtr, pointer);
+        boolean async = asynch && this instanceof BufferArgument && ((BufferArgument) this).isDirect();
+        return device.enqueueReadBuffer(q, async, events, size, hostPtr, pointer);
     }
 }
