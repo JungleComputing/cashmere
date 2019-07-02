@@ -19,9 +19,6 @@ package ibis.cashmere.constellation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-
 public class ArrayArgument extends Argument {
 
     protected CommandStream readQueue;

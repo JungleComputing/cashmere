@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ibis.cashmere.constellation.Argument;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
+import ibis.cashmere.constellation.Device;
+import ibis.cashmere.constellation.DeviceEvent;
+import ibis.cashmere.constellation.KernelLaunch;
 import jcuda.Pointer;
 import jcuda.driver.CUevent;
 import jcuda.driver.CUfunction;

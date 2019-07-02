@@ -1,4 +1,4 @@
-package ibis.cashmere.constellation.deviceAPI;
+package ibis.cashmere.constellation;
 
 import java.nio.Buffer;
 import java.util.List;
@@ -8,7 +8,6 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.Cashmere;
 import ibis.cashmere.constellation.deviceImpl.jcuda.CudaPlatform;
 import ibis.cashmere.constellation.deviceImpl.jocl.OpenCLPlatform;
 

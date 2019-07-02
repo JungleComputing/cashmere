@@ -16,9 +16,6 @@
 
 package ibis.cashmere.constellation;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-
 /**
  * Represents a method to initialize a library.
  */

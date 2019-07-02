@@ -1,4 +1,4 @@
-package ibis.cashmere.constellation.deviceAPI;
+package ibis.cashmere.constellation;
 
 /**
  * Abstraction for a device or host pointer.

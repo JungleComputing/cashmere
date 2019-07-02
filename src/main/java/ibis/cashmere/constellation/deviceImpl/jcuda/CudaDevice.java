@@ -30,11 +30,11 @@ import org.apache.commons.io.IOUtils;
 
 import ibis.cashmere.constellation.Argument.Direction;
 import ibis.cashmere.constellation.Cashmere;
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
-import ibis.cashmere.constellation.deviceAPI.Pointer;
+import ibis.cashmere.constellation.CommandStream;
+import ibis.cashmere.constellation.Device;
+import ibis.cashmere.constellation.DeviceEvent;
+import ibis.cashmere.constellation.KernelLaunch;
+import ibis.cashmere.constellation.Pointer;
 import jcuda.CudaException;
 import jcuda.driver.CUcontext;
 import jcuda.driver.CUdevice;

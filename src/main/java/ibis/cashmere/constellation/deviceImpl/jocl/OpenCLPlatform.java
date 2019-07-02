@@ -16,9 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibis.cashmere.constellation.Cashmere;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.Platform;
-import ibis.cashmere.constellation.deviceAPI.Pointer;
+import ibis.cashmere.constellation.Device;
+import ibis.cashmere.constellation.Platform;
+import ibis.cashmere.constellation.Pointer;
 
 public class OpenCLPlatform implements Platform {
 

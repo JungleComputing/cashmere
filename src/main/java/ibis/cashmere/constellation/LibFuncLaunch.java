@@ -16,9 +16,6 @@
 
 package ibis.cashmere.constellation;
 
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-
 /**
  * Represents one specific launch of a {@link LibFunc}. While {@link #launch} methods can only be called once, it is possible to
  * create multiple launches from a {@link LibFunc}.

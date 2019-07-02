@@ -1,6 +1,6 @@
 package ibis.cashmere.constellation.deviceImpl.jcuda;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
+import ibis.cashmere.constellation.CommandStream;
 import jcuda.driver.CUstream;
 
 public class CudaCommandStream implements CommandStream {

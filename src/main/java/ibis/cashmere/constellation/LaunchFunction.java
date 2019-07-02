@@ -16,9 +16,6 @@
 
 package ibis.cashmere.constellation;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-
 /**
  * Represents a method to launch a library function {@link LibFunc}. The supplied parameters can be used to enqueue the library
  * function.

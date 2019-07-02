@@ -37,7 +37,7 @@ import org.jocl.cl_platform_id;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.DeviceInfo;
+import ibis.cashmere.constellation.DeviceInfo;
 
 class OpenCLInfo {
 

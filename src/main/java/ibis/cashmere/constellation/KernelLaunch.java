@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package ibis.cashmere.constellation.deviceAPI;
-
-import ibis.cashmere.constellation.Kernel;
-import ibis.cashmere.constellation.Launch;
+package ibis.cashmere.constellation;
 
 /**
  * Represents one specific launch of a <code>Kernel</code> . While {@link #launch launch} methods can only be called once, it is

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ibis.cashmere.constellation.deviceAPI;
+package ibis.cashmere.constellation;
 
 import static ibis.constellation.util.MemorySizes.toStringBytes;
 
@@ -28,19 +28,6 @@ import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import ibis.cashmere.constellation.Argument;
-import ibis.cashmere.constellation.ArrayArgument;
-import ibis.cashmere.constellation.Buffer;
-import ibis.cashmere.constellation.BufferArgument;
-import ibis.cashmere.constellation.ByteArrayArgument;
-import ibis.cashmere.constellation.Cashmere;
-import ibis.cashmere.constellation.DeInitLibraryFunction;
-import ibis.cashmere.constellation.DoubleArrayArgument;
-import ibis.cashmere.constellation.FloatArrayArgument;
-import ibis.cashmere.constellation.InitLibraryFunction;
-import ibis.cashmere.constellation.IntArrayArgument;
-import ibis.cashmere.constellation.PointerArgument;
 
 /**
  * Class that represents a many-core <code>Device</code>.

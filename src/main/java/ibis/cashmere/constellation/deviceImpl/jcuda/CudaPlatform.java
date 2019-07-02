@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 import ibis.cashmere.constellation.Cashmere;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.Platform;
-import ibis.cashmere.constellation.deviceAPI.Pointer;
+import ibis.cashmere.constellation.Device;
+import ibis.cashmere.constellation.Platform;
+import ibis.cashmere.constellation.Pointer;
 import jcuda.driver.CUdevice;
 import jcuda.driver.JCudaDriver;
 

@@ -1,4 +1,4 @@
-package ibis.cashmere.constellation.deviceAPI;
+package ibis.cashmere.constellation;
 
 /*
  * Administration of different kinds of devices

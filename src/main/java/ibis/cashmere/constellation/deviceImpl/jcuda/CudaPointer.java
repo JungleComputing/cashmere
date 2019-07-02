@@ -2,7 +2,7 @@ package ibis.cashmere.constellation.deviceImpl.jcuda;
 
 import static jcuda.driver.JCudaDriver.cuMemFree;
 
-import ibis.cashmere.constellation.deviceAPI.Pointer;
+import ibis.cashmere.constellation.Pointer;
 import jcuda.driver.CUdeviceptr;
 
 public class CudaPointer implements Pointer {

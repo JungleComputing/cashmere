@@ -27,10 +27,10 @@ import org.jocl.cl_event;
 import org.jocl.cl_kernel;
 
 import ibis.cashmere.constellation.Argument;
+import ibis.cashmere.constellation.Device;
+import ibis.cashmere.constellation.DeviceEvent;
 import ibis.cashmere.constellation.Kernel;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
+import ibis.cashmere.constellation.KernelLaunch;
 
 /**
  * Represents one specific launch of a <code>Kernel</code> . While {@link #launch launch} methods can only be called once, it is

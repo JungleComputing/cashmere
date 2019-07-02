@@ -24,11 +24,6 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-import ibis.cashmere.constellation.deviceAPI.Pointer;
-
 /**
  * A class used for indicating directions of arguments to kernels.
  */

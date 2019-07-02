@@ -17,13 +17,13 @@
 package ibis.cashmere.constellation;
 
 /**
- * Represents a method to deinitialize an OpenCL library.
+ * Represents a method to deinitialize a library.
  */
 @FunctionalInterface
 public interface DeInitLibraryFunction {
 
     /**
-     * Deinitializes the OpenCL library
+     * Deinitializes the library
      */
     public void deinitialize();
 

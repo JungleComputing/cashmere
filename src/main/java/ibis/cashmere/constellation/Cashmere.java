@@ -36,9 +36,6 @@ import java.util.zip.ZipInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.KernelLaunch;
-import ibis.cashmere.constellation.deviceAPI.Platform;
 import ibis.constellation.Activity;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Constellation;
@@ -182,17 +179,17 @@ public class Cashmere {
     }
 
     /**
-     * Setup an OpenCL library. The <code>initLibraryFunc</code> and <code>deInitLibraryFunc</code> functions need to implement
-     * functionality to set up the library with Cashmere's OpenCL data structures such as <code>cl_context</code>. To actually
+     * Setup a library. The <code>initLibraryFunc</code> and <code>deInitLibraryFunc</code> functions need to implement
+     * functionality to set up the library with Cashmere's data structures. To actually
      * register/unregister the library with Cashmere, it necessary to call {@link #initializeLibraries()} and
      * {@link #deinitializeLibraries()} respectively.
      *
      * @param name
-     *            a user-defined name for the OpenCL library
+     *            a user-defined name for the library
      * @param initLibraryFunc
-     *            a function that initializes the OpenCL library
+     *            a function that initializes the library
      * @param deInitLibraryFunc
-     *            a function that deinitializes the OpenCL library
+     *            a function that deinitializes the library
      */
     public static synchronized void setupLibrary(String name, InitLibraryFunction initLibraryFunc,
             DeInitLibraryFunction deInitLibraryFunc) {
@@ -278,7 +275,7 @@ public class Cashmere {
     }
 
     /**
-     * Retrieve the OpenCL library function with library name <code>libraryName</code>.
+     * Retrieve the library function with library name <code>libraryName</code>.
      *
      * @param libraryName
      *            the name of the library
@@ -295,7 +292,7 @@ public class Cashmere {
     }
 
     /**
-     * Retrieve the OpenCL library function with library name <code>libraryName</code>.
+     * Retrieve the library function with library name <code>libraryName</code>.
      *
      * @param libraryName
      *            the name of the library

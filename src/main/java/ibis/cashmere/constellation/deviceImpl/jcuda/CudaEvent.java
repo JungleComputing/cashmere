@@ -2,7 +2,7 @@ package ibis.cashmere.constellation.deviceImpl.jcuda;
 
 import static jcuda.driver.JCudaDriver.cuEventDestroy;
 
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
+import ibis.cashmere.constellation.DeviceEvent;
 import jcuda.driver.CUevent;
 
 // TODO: implement reference counting here?

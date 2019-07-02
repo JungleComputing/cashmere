@@ -18,10 +18,6 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-
 public class FloatArray2DArgument extends FloatArrayArgument {
 
     private float[][] fs2D;

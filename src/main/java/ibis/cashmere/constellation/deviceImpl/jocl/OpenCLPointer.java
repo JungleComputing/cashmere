@@ -8,7 +8,7 @@ import org.jocl.cl_mem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.cashmere.constellation.deviceAPI.Pointer;
+import ibis.cashmere.constellation.Pointer;
 
 public class OpenCLPointer implements Pointer {
 

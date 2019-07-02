@@ -18,12 +18,6 @@ package ibis.cashmere.constellation;
 
 import java.util.ArrayList;
 
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-import ibis.cashmere.constellation.deviceAPI.Platform;
-import ibis.cashmere.constellation.deviceAPI.Pointer;
-
 public class FloatArrayArgument extends ArrayArgument {
 
     protected float[] fs;

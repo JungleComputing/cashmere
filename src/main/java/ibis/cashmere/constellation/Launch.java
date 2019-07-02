@@ -29,15 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ibis.cashmere.constellation.Argument;
-import ibis.cashmere.constellation.deviceAPI.CommandStream;
-import ibis.cashmere.constellation.deviceAPI.Device;
-import ibis.cashmere.constellation.deviceAPI.DeviceEvent;
-import ibis.cashmere.constellation.deviceAPI.Platform;
-import ibis.cashmere.constellation.deviceAPI.Pointer;
-import ibis.cashmere.constellation.deviceImpl.jocl.OpenCLKernelLaunch;
 
 /**
- * The abstract base class for {@link OpenCLKernelLaunch} and {@link LibFuncLaunch} that contains shared code.
+ * The abstract base class for {@link KernelLaunch} and {@link LibFuncLaunch} that contains shared code.
  */
 public abstract class Launch {
 
