@@ -442,6 +442,7 @@ public abstract class Launch {
 
     private static void cleanLaunches(int nrLaunchesToRetain) {
         int nrLaunchesToClean = Math.max(launches.get().size() - nrLaunchesToRetain, 0);
+        logger.debug("cleanLaunches: nrLaunchesToClean = " + nrLaunchesToClean);
         for (int i = 0; i < nrLaunchesToClean; i++) {
             Launch l = launches.get().pollFirst();
             l.clean();
@@ -546,7 +547,9 @@ public abstract class Launch {
                 a.scheduleReads(null, readBufferEvents, true);
             }
         }
+
         DeviceEvent[] readBufferEventsArray = readBufferEvents.toArray(new DeviceEvent[readBufferEvents.size()]);
+
         if (readBufferEventsArray.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("finish: read buffer events to wait for: " + Arrays.toString(readBufferEventsArray));

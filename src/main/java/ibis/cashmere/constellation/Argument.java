@@ -113,10 +113,6 @@ public class Argument {
         return pointer;
     }
 
-    public Direction getDirection() {
-        return direction;
-    }
-
     public void createBuffer(Device device, long size, Pointer hostPtr) {
 
         pointer = device.createBuffer(direction, size);
@@ -178,5 +174,9 @@ public class Argument {
 
         boolean async = asynch && this instanceof BufferArgument && ((BufferArgument) this).isDirect();
         return device.enqueueReadBuffer(q, async, events, size, hostPtr, pointer);
+    }
+
+    public Direction getDirection() {
+        return direction;
     }
 }
