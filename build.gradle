@@ -1,55 +1,8 @@
 plugins {
     id 'java-library'
-	id 'maven-publish'
-	id 'com.jfrog.bintray' version '1.8.0'
-	id 'distribution'
-}
-
-def static getOsString() {
-    String vendor = System.getProperty("java.vendor");
-    if ("The Android Project" == vendor) {
-	return "android";
-    } else {
-	String osName = System.getProperty("os.name");
-	osName = osName.toLowerCase(Locale.ENGLISH);
-	if (osName.startsWith("windows")) {
-	    return "windows";
-	} else if (osName.startsWith("mac os")) {
-	    return "apple";
-	} else if (osName.startsWith("linux")) {
-	    return "linux";
-	} else if (osName.startsWith("sun")) {
-	    return "sun"
-	}
-	return "unknown"
-    }
-}
-
-def static getArchString() {
-    String osArch = System.getProperty("os.arch");
-    osArch = osArch.toLowerCase(Locale.ENGLISH);
-    if ("i386" == osArch || "x86" == osArch || "i686" == osArch) {
-	return "x86";
-    } else if (osArch.startsWith("amd64") || osArch.startsWith("x86_64")) {
-	return "x86_64";
-    } else if (osArch.startsWith("arm64")) {
-	return "arm64";
-    } else if (osArch.startsWith("arm")) {
-	return "arm";
-    } else if ("ppc" == osArch || "powerpc" == osArch) {
-	return "ppc";
-    } else if (osArch.startsWith("ppc")) {
-	return "ppc_64";
-    } else if (osArch.startsWith("sparc")) {
-	return "sparc";
-    } else if (osArch.startsWith("mips64")) {
-	return "mips64";
-    } else if (osArch.startsWith("mips")) {
-	return "mips";
-    } else if (osArch.contains("risc")) {
-	return "risc";
-    }
-    return "unknown";
+        id 'maven-publish'
+        id 'com.jfrog.bintray' version '1.8.0'
+        id 'distribution'
 }
 
 def static getOsString() {
@@ -121,13 +74,13 @@ version = '0.4-SNAPSHOT'
 
 def pomConfig = {
     scm {
-	url "https://github.com/junglecomputing/cashmere.git"
+        url "https://github.com/junglecomputing/cashmere.git"
     }
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
-	from sourceSets.main.allSource
+        from sourceSets.main.allSource
 }
 
 javadoc.failOnError = false
@@ -140,75 +93,90 @@ javadoc.options.links "https://JungleComputing.github.io/Constellation"
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
-	from javadoc.destinationDir
+        from javadoc.destinationDir
 }
 
 artifacts {
     archives sourcesJar
-	archives javadocJar
+        archives javadocJar
 }
 
 publishing {
     publications {
-	mavenJava(MavenPublication) {
-	    from components.java
-		artifact sourcesJar {
-		    classifier "sources"
-		}
-	    artifact javadocJar {
-		classifier "javadoc"
-	    }
-	    groupId 'nl.junglecomputing.cashmere'
-		artifactId 'cashmere'
-		version version
+        mavenJava(MavenPublication) {
+            from components.java
+                artifact sourcesJar {
+                    classifier "sources"
+                }
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+            groupId 'nl.junglecomputing.cashmere'
+                artifactId 'cashmere'
+                version version
 
-		pom.withXml {
-		    def root = asNode()
-			root.appendNode('url', 'https://github.com/junglecomputing/cashmere.git')
-			root.children().last() + pomConfig
-		}
-	}
+                pom.withXml {
+                    def root = asNode()
+                        root.appendNode('url', 'https://github.com/junglecomputing/cashmere.git')
+                        root.children().last() + pomConfig
+                }
+        }
     }
 }
 
 bintray {
     user = System.getenv('BINTRAY_NAME')
-	key = System.getenv('BINTRAY_APIKEY')
-	publications = ['mavenJava']
-	pkg {
-	    repo = 'JungleComputing-Cashmere'
-		name = 'cashmere'
-		userOrg = "$user"
-		vcsUrl = 'https://github.com/JungleComputing/cashmere.git'
-		licenses = ['Apache-2.0']
-	}
+        key = System.getenv('BINTRAY_APIKEY')
+        publications = ['mavenJava']
+        pkg {
+            repo = 'JungleComputing-Cashmere'
+                name = 'cashmere'
+                userOrg = "$user"
+                vcsUrl = 'https://github.com/JungleComputing/cashmere.git'
+                licenses = ['Apache-2.0']
+        }
 }
 
 task copyJavadoc(type: Copy) {
     description 'Copy Java documentation to site'
-	group 'Publishing'
-	from "build/docs"
-	into "docs/versions/${version}"
-	dependsOn 'javadoc'
+        group 'Publishing'
+        from "build/docs"
+        into "docs/versions/${version}"
+        dependsOn 'javadoc'
 }
 
 distZip.dependsOn jar
 distTar.dependsOn jar
 installDist.dependsOn jar
 
+jar {
+    from('src/main/java/example/kmeans') {
+          include '*.cl'
+          include '*.cu'
+    }
+    from('src/main/java/example/mmult') {
+          include '*.cl'
+          include '*.cu'
+    }
+    from('src/main/java/example/vectoradd') {
+          include '*.cl'
+          include '*.cu'
+    }
+}
+
 distributions {
     main {
-	baseName = project.name
-	contents {
-	    from 'log4j.properties'
-	    into('bin') {
-		from 'scripts'
-	    }
-	    into('lib') {
-		from configurations.runtimeClasspath
-		from jar.archivePath
-	    }
-	}
+        baseName = project.name
+        contents {
+            from 'log4j.properties'
+            into('bin') {
+                from 'scripts'
+            }
+            into('lib') {
+                from configurations.runtimeClasspath
+                from jar.archivePath
+            }
+        }
     }
 }
 

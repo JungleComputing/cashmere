@@ -9,4 +9,4 @@ if [ -z "$CASHMERE" ];  then
     exit 1
 fi
 
-exec "$CASHMERE"/cashmere-scripts/cashmere-run -Dibis.registry.central.server.connect.timeout=300 -Xmx256M ibis.ipl.server.Server "$@"
+exec "$CASHMERE"/scripts/cashmere-run -Dibis.registry.central.server.connect.timeout=300 -Xmx256M ibis.ipl.server.Server "$@"
