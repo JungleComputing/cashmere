@@ -35,11 +35,11 @@ public class CudaPointer implements Pointer {
         cuPointer = jcuda.Pointer.to(ptr);
     }
 
-    CUdeviceptr getPtr() {
+    public CUdeviceptr getPtr() {
         return ptr;
     }
 
-    jcuda.Pointer getPointer() {
+    public jcuda.Pointer getPointer() {
         return cuPointer;
     }
 

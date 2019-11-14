@@ -40,7 +40,7 @@ public class CudaEvent implements DeviceEvent {
 
     }
 
-    CUevent getEvent() {
+    public CUevent getEvent() {
         return evnt;
     }
 }
