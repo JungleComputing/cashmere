@@ -14,12 +14,14 @@ import ibis.cashmere.constellation.Platform;
 import ibis.cashmere.constellation.Pointer;
 import jcuda.driver.CUdevice;
 import jcuda.driver.JCudaDriver;
+import jcuda.runtime.JCuda;
 
 public class CudaPlatform implements Platform {
 
     @Override
     public void initializePlatform(Map<String, List<Device>> devices, Cashmere cashmere) {
         JCudaDriver.setExceptionsEnabled(true);
+        JCuda.setExceptionsEnabled(true);
         cuInit(0);
         final int[] count = new int[1];
         cuDeviceGetCount(count);
