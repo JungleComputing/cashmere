@@ -99,9 +99,9 @@ public class CudaDevice extends Device {
 
     private void checkContext() {
         Integer result = threadLocal.get();
-        logger.debug("checkContext: result = " + result);
+        // logger.debug("checkContext: result = " + result);
         if (result == 0) {
-            logger.debug("Setting context");
+            // logger.debug("Setting context");
             cuCtxSetCurrent(ctxt);
             threadLocal.set(new Integer(1));
         }
@@ -181,12 +181,12 @@ public class CudaDevice extends Device {
     }
 
     void measureTimeOffset() {
-        checkContext();
-        CUstream cuStream = ((CudaCommandStream) getExecuteQueue()).getQueue();
-        CUevent execEvent = new CUevent();
-        cuEventCreate(execEvent, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
-        cuEventRecord(execEvent, cuStream);
-        cuEventSynchronize(execEvent);
+        // checkContext();
+        // CUstream cuStream = ((CudaCommandStream) getExecuteQueue()).getQueue();
+        // CUevent execEvent = new CUevent();
+        // cuEventCreate(execEvent, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
+        // cuEventRecord(execEvent, cuStream);
+        // cuEventSynchronize(execEvent);
         // TODO: not possible in CUDA? We can only get the time difference between two events?
     }
 
