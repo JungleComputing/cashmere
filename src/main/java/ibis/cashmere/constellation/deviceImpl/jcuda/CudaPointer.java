@@ -52,4 +52,8 @@ public class CudaPointer implements Pointer {
         }
         return false;
     }
+
+    public String toString() {
+        return "Pointer: ptr = " + ptr + ", cuPointer = " + cuPointer;
+    }
 }

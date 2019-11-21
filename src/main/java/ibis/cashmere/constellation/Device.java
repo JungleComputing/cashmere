@@ -234,7 +234,7 @@ public abstract class Device implements Comparable<Device> {
 
     @Override
     public String toString() {
-        return info.toString();
+        return info.toString() + "(" + System.identityHashCode(this) + ")";
     }
 
     /*
@@ -364,7 +364,7 @@ public abstract class Device implements Comparable<Device> {
                 writePointerEvent = a.writeBufferNoCreateBuffer(this, getWriteQueue(), null, from.capacity(),
                         cashmere.getPlatform().toPointer(from.getByteBuffer()));
             } else {
-                throw new Error("Unknown pointer");
+                throw new Error("Unknown pointer: device = " + this + ", ptr = "  + to);
             }
         }
 
@@ -1017,7 +1017,7 @@ public abstract class Device implements Comparable<Device> {
             events.add(event);
         }
         if (eventlogger.isDebugEnabled()) {
-            eventlogger.debug("storing {} in Device.executeEvents<type>", event);
+            eventlogger.debug("storing {} in Device.executeEvents<type> {}", event, events);
         }
     }
 
