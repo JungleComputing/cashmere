@@ -36,14 +36,14 @@ public interface Platform {
     public void initializePlatform(Map<String, List<Device>> devices, Cashmere cashmere);
 
     public static Platform initializePlatform(Properties p, Map<String, List<Device>> devices, Cashmere cashmere) {
-        String platform = p.getProperty("cashmere.platform", "OpenCL");
+        String platform = p.getProperty("cashmere.platform", "opencl");
         Platform platformImpl = null;
 
-        if (platform.equals("OpenCL")) {
+        if (platform.equals("opencl")) {
             // We may have to do this part with introspection in the future ...
             platformImpl = new OpenCLPlatform();
         }
-        if (platform.equals("Cuda")) {
+        if (platform.equals("cuda")) {
             platformImpl = new CudaPlatform();
         }
 
