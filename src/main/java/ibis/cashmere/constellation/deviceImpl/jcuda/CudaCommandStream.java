@@ -6,7 +6,7 @@ import jcuda.driver.CUstream;
 public class CudaCommandStream implements CommandStream {
     private final CUstream stream;
 
-    CUstream getQueue() {
+    public CUstream getQueue() {
         return stream;
     }
 

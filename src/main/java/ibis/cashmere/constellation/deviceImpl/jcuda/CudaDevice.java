@@ -99,16 +99,16 @@ public class CudaDevice extends Device {
 
     private void checkContext() {
         Integer result = threadLocal.get();
-        logger.debug("checkContext: result = " + result);
+        // logger.debug("checkContext: result = " + result);
         if (result == 0) {
-            logger.debug("Setting context");
+            // logger.debug("Setting context");
             cuCtxSetCurrent(ctxt);
             threadLocal.set(new Integer(1));
         }
     }
 
     private CUdeviceptr alloc(long size) {
-        checkContext();
+        cuCtxSetCurrent(ctxt);
         CUdeviceptr ptr = new CUdeviceptr();
         cuMemAlloc(ptr, size);
         return ptr;
@@ -117,7 +117,11 @@ public class CudaDevice extends Device {
     @Override
     public Pointer createBuffer(Direction d, long size) {
         CUdeviceptr ptr = withAllocationError(() -> alloc(size));
-        return new CudaPointer(ptr);
+        CudaPointer p = new CudaPointer(ptr);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Device: " + this + ", allocated: " + p + ", with size " + size);
+        }
+        return p;
     }
 
     @Override
@@ -125,6 +129,9 @@ public class CudaDevice extends Device {
         CUmodule module = new CUmodule();
         logger.debug("Adding a kernel for Cuda, name = " + name);
         try {
+            // Need to set the context to the current device.
+            // Note that addKernel is called by the main thread, for all devices.
+            cuCtxSetCurrent(ctxt);
             byte[] cubin = compileCuSourceToCubin(kernelSource, "-lineinfo", "-gencode=arch=" + architecture + ",code=" + capability);
             cuModuleLoadData(module, cubin);
             String kernelName = name.substring(0, name.lastIndexOf(".cu"));
@@ -150,6 +157,8 @@ public class CudaDevice extends Device {
             arguments.add(cuFile.getAbsolutePath());
             arguments.add("-o");
             arguments.add(cubinFile.getAbsolutePath());
+
+            logger.debug("Compiling: " + Arrays.toString(arguments.toArray(new String[0])));
 
             final String output = runExternalCommand(arguments.toArray(new String[0]));
             if (output.length() > 2) {
@@ -181,19 +190,19 @@ public class CudaDevice extends Device {
     }
 
     void measureTimeOffset() {
-        checkContext();
-        CUstream cuStream = ((CudaCommandStream) getExecuteQueue()).getQueue();
-        CUevent execEvent = new CUevent();
-        cuEventCreate(execEvent, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
-        cuEventRecord(execEvent, cuStream);
-        cuEventSynchronize(execEvent);
+        // checkContext();
+        // CUstream cuStream = ((CudaCommandStream) getExecuteQueue()).getQueue();
+        // CUevent execEvent = new CUevent();
+        // cuEventCreate(execEvent, jcuda.driver.CUevent_flags.CU_EVENT_BLOCKING_SYNC);
+        // cuEventRecord(execEvent, cuStream);
+        // cuEventSynchronize(execEvent);
         // TODO: not possible in CUDA? We can only get the time difference between two events?
     }
 
     @Override
     public DeviceEvent writeNoCreateBuffer(CommandStream q, DeviceEvent[] waitEvents, boolean async, long size, Pointer hostPtr,
             Pointer devicePtr) {
-        checkContext();
+        cuCtxSetCurrent(ctxt);
         CUstream cuStream = ((CudaCommandStream) q).getQueue();
         // insert waits for the wait events
         if (waitEvents != null) {
@@ -224,7 +233,7 @@ public class CudaDevice extends Device {
     @Override
     public DeviceEvent enqueueReadBuffer(CommandStream q, boolean async, DeviceEvent[] waitEvents, long size, Pointer hostPtr,
             Pointer devicePtr) {
-        checkContext();
+        cuCtxSetCurrent(ctxt);
         CUstream cuStream = ((CudaCommandStream) q).getQueue();
         // insert waits for the wait events
         if (waitEvents != null) {
@@ -263,7 +272,7 @@ public class CudaDevice extends Device {
     @Override
     public void waitEvents(DeviceEvent[] waitEvents) {
         if (waitEvents != null) {
-            checkContext();
+            cuCtxSetCurrent(ctxt);
             for (DeviceEvent evnt : waitEvents) {
                 CUevent e = ((CudaEvent) evnt).getEvent();
                 if (e != null) {
@@ -275,7 +284,7 @@ public class CudaDevice extends Device {
 
     @Override
     public KernelLaunch createLaunch(String name, String threadname) {
-        checkContext();
+        cuCtxSetCurrent(ctxt);
         return new CudaKernelLaunch(name, threadname, this);
     }
 
@@ -285,6 +294,10 @@ public class CudaDevice extends Device {
             return kernels.size() == 1;
         }
         return kernels.containsKey(name);
+    }
+
+    public CUcontext getContext() {
+        return ctxt;
     }
 
     CUfunction getKernel(String kernelName) {

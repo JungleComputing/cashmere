@@ -525,6 +525,7 @@ public class Cashmere {
             ZipEntry ze = null;
             while ((ze = zip.getNextEntry()) != null) {
                 if (ze.getName().endsWith(getPlatform().getSuffix())) {
+                    String name = new File(ze.getName()).getName();
                     BufferedInputStream bis = new BufferedInputStream(zip);
                     byte[] bytes = new byte[(int) ze.getSize()];
                     int offset = 0;
@@ -539,7 +540,7 @@ public class Cashmere {
                         }
                     }
                     logger.debug("Found kernel " + ze.getName() + " with size " + bytes.length);
-                    kernelSources.put(ze.getName(), new String(bytes));
+                    kernelSources.put(name, new String(bytes));
                 }
             }
         } catch (IOException e) {
