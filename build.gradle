@@ -83,10 +83,6 @@ javadoc.failOnError = false
 javadoc.options.memberLevel = JavadocMemberLevel.PUBLIC
 javadoc.options.links "https://JungleComputing.github.io/Constellation"
 
-// javadoc {
-//   options.memberLevel = JavadocMemberLevel.PUBLIC
-// }
-
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
         from javadoc.destinationDir
@@ -97,13 +93,11 @@ artifacts {
     archives javadocJar
 }
 
-signing {
-    sign configurations.archives
-}
-
 uploadArchives {
   repositories {
     mavenDeployer {
+      configurations.archives.artifacts.removeAll {PublishArtifact publishArtifact -> publishArtifact.type == 'tar'} 
+      configurations.archives.artifacts.removeAll {PublishArtifact publishArtifact -> publishArtifact.type == 'zip'} 
       beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
       // repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
@@ -111,6 +105,10 @@ uploadArchives {
       // }
 
       repository(url: "file://${System.properties['user.home']}/.m2/repository") {
+      }
+
+      signing {
+	sign configurations.archives
       }
 
       snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
@@ -166,6 +164,7 @@ task copyJavadoc(type: Copy) {
 distZip.dependsOn jar
 distTar.dependsOn jar
 installDist.dependsOn jar
+
 
 jar {
     from('src/main/java/example/kmeans') {
