@@ -1,8 +1,8 @@
 plugins {
     id 'java-library'
-        id 'maven-publish'
-        id 'com.jfrog.bintray' version '1.8.0'
-        id 'distribution'
+    id 'maven'
+    id 'signing'
+    id 'distribution'
 }
 
 def static getOsString() {
@@ -58,25 +58,21 @@ dependencies {
         transitive=false
     }
     compile group: 'org.jcuda', name: 'jcuda-natives', classifier: classifier, version: '0.8.0'
-    api 'nl.junglecomputing.cashmere:jocl:2.0.1'
-    api 'nl.junglecomputing:constellation:2.0.0'
-    api 'nl.junglecomputing.ipl:ipl-support:2.3.1'
+    api 'org.jocl:jocl:2.0.4'
+    api 'nl.junglecomputing:constellation:2.0.1'
+    api 'nl.junglecomputing.ipl:ipl-support:2.3.3'
     implementation 'org.slf4j:slf4j-api:1.7.21'
-    implementation 'nl.junglecomputing.ipl:ibis-util:2.3.1'
+    implementation 'nl.junglecomputing.ipl:ibis-util:2.3.3'
     compile 'org.lucee:commons-io:2.4.0'
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
-version = '0.4-SNAPSHOT'
-
-def pomConfig = {
-    scm {
-        url "https://github.com/junglecomputing/cashmere.git"
-    }
-}
+version = '0.4'
+group = 'nl.junglecomputing.cashmere'
+archivesBaseName = 'cashmere'
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
@@ -98,43 +94,65 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 
 artifacts {
     archives sourcesJar
-        archives javadocJar
+    archives javadocJar
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-                artifact sourcesJar {
-                    classifier "sources"
-                }
-            artifact javadocJar {
-                classifier "javadoc"
-            }
-            groupId 'nl.junglecomputing.cashmere'
-                artifactId 'cashmere'
-                version version
+signing {
+    sign configurations.archives
+}
 
-                pom.withXml {
-                    def root = asNode()
-                        root.appendNode('url', 'https://github.com/junglecomputing/cashmere.git')
-                        root.children().last() + pomConfig
-                }
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+      // repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+      //   authentication(userName: ossrhUsername, password: ossrhPassword)
+      // }
+
+      repository(url: "file://${System.properties['user.home']}/.m2/repository") {
+      }
+
+      snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
+      }
+
+      pom.project {
+
+        name 'Cashmere'
+        packaging 'jar'
+        description 'Cashmere is a programming system for heterogeneous compute clusters with many-core devices such as GPUs.'
+
+        url 'https://github.com/junglecomputing/cashmere'
+
+        scm {
+          connection 'scm:git:git://github.com/junglecomputing/cashmere.git'
+          developerConnection 'scm:git:ssh://github.com:junglecomputing/cashmere.git'
+          url 'https://github.com/junglecomputing/cashmere/tree/master'
         }
+
+        licenses {
+          license {
+            name 'The Apache License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        developers {
+          developer {
+            name = 'Pieter Hijma'
+            organization = 'Vrije Universiteit Amsterdam'
+            url = 'https://github.com/pieterhijma'
+          }
+          developer {
+            name = 'Ceriel Jacobs'
+            organization = 'Vrije Universiteit Amsterdam'
+            url = 'https://github.com/CerielJacobs'
+          }
+        }
+      }
     }
-}
-
-bintray {
-    user = System.getenv('BINTRAY_NAME')
-        key = System.getenv('BINTRAY_APIKEY')
-        publications = ['mavenJava']
-        pkg {
-            repo = 'JungleComputing-Cashmere'
-                name = 'cashmere'
-                userOrg = "$user"
-                vcsUrl = 'https://github.com/JungleComputing/cashmere.git'
-                licenses = ['Apache-2.0']
-        }
+  }
 }
 
 task copyJavadoc(type: Copy) {
