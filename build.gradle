@@ -100,12 +100,12 @@ uploadArchives {
       configurations.archives.artifacts.removeAll {PublishArtifact publishArtifact -> publishArtifact.type == 'zip'} 
       beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-      // repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
-      //   authentication(userName: ossrhUsername, password: ossrhPassword)
-      // }
-
-      repository(url: "file://${System.properties['user.home']}/.m2/repository") {
+      repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+        authentication(userName: ossrhUsername, password: ossrhPassword)
       }
+
+      // repository(url: "file://${System.properties['user.home']}/.m2/repository") {
+      // }
 
       signing {
 	sign configurations.archives
