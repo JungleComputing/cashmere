@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"example.kmeans"},{"l":"example.mmult"},{"l":"example.mmult.optimized"},{"l":"example.mmult.unoptimized"},{"l":"example.util"},{"l":"example.vectoradd"},{"l":"ibis.cashmere.constellation"},{"l":"ibis.cashmere.constellation.deviceImpl.jcuda"},{"l":"ibis.cashmere.constellation.deviceImpl.jocl"}]

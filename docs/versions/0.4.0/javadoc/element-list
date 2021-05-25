@@ -1,0 +1,9 @@
+example.kmeans
+example.mmult
+example.mmult.optimized
+example.mmult.unoptimized
+example.util
+example.vectoradd
+ibis.cashmere.constellation
+ibis.cashmere.constellation.deviceImpl.jcuda
+ibis.cashmere.constellation.deviceImpl.jocl
